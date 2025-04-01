@@ -1,0 +1,97 @@
+
+# MinIO configuration - sử dụng cổng 9000 cho API S3
+import os
+from fastapi import HTTPException
+import minio
+from minio.error import S3Error
+from pathlib import Path
+
+
+MINIO_API_ENDPOINT = "10.4.18.153:9000"  # Cổng API
+MINIO_CONSOLE_ENDPOINT = "10.4.18.153:9001"  # Cổng Console (UI)
+MINIO_ACCESS_KEY = "Tzh7HOxDDJYbXl3dVtu3"
+MINIO_SECRET_KEY = "m9CzH59Xebwpdo5lI3oSV50mMkeZOZyrJXHp8XSr"
+MINIO_SECURE = False  # Set to True if using HTTPS
+MINIO_BUCKET = "ai-proposal"  # Bucket name
+
+# Thư mục Downloads của người dùng
+HOME_DIR = str(Path.home())
+DOWNLOADS_DIR = os.path.join(HOME_DIR, "Downloads")
+os.makedirs(DOWNLOADS_DIR, exist_ok=True)
+
+def get_minio_client():
+    """Create and return a MinIO client"""
+    print(f"Initializing MinIO client with endpoint: {MINIO_API_ENDPOINT}")
+    return minio.Minio(
+        endpoint=MINIO_API_ENDPOINT,  # Sử dụng cổng API
+        access_key=MINIO_ACCESS_KEY,
+        secret_key=MINIO_SECRET_KEY,
+        secure=MINIO_SECURE
+    )
+
+def download_file_from_minio(filename: str):
+    """
+    Tải file từ MinIO về thư mục Downloads.
+
+    Parameters:
+    - filename (str): Tên file trong MinIO cần tải xuống.
+
+    Returns:
+    - dict: Thông tin về file đã tải xuống.
+    """
+    index = filename.find("/")
+    filename = filename[index+1:]
+    # Khởi tạo MinIO client
+    minio_client = get_minio_client()
+    print("") 
+    try:
+    
+        # Kiểm tra file có tồn tại không
+        try:
+            stat = minio_client.stat_object(MINIO_BUCKET, filename)
+            print(f"Found file in MinIO: {filename}, Size: {stat.size} bytes")
+        except S3Error as stat_err:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"File '{filename}' không tồn tại trong bucket {MINIO_BUCKET}"
+            )
+
+        # Định nghĩa thư mục lưu file
+        download_dir = DOWNLOADS_DIR
+        download_path = os.path.join(download_dir, filename)
+
+        # Xử lý tránh ghi đè file
+        counter = 1
+        base_name, extension = os.path.splitext(filename)
+        while os.path.exists(download_path):
+            new_filename = f"{base_name}_{counter}{extension}"
+            download_path = os.path.join(download_dir, new_filename)
+            counter += 1
+
+        final_filename = os.path.basename(download_path)
+
+        print(f"Downloading file from MinIO: {filename} to {download_path}")
+
+        # Tải file từ MinIO
+        minio_client.fget_object(
+            bucket_name=MINIO_BUCKET,
+            object_name=filename,
+            file_path=download_path
+        )
+
+        print(f"File downloaded successfully to: {download_path}")
+
+        # Trả về thông tin file đã tải
+        return {
+            "success": True,
+            "message": "File đã được tải xuống thành công",
+            "minio_filename": filename,
+            "saved_as": final_filename,
+            "download_path": download_path,
+            "file_size": os.path.getsize(download_path)
+        }
+
+    except S3Error as s3_err:
+        error_message = f"MinIO error: {str(s3_err)}"
+        print(error_message)
+        raise HTTPException(status_code=500, detail=error_message)
