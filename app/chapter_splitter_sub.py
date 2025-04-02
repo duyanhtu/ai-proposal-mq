@@ -124,7 +124,7 @@ def consume_callback(ch, method, properties, body):
                             files_object.append(
                                 {
                                     "bucket": message["bucket"],
-                                    "file_name": rpc["name"],
+                                    "file_name": uploaded_files[0].split("/")[-1],
                                     "file_type": file_type,
                                     "file_path": uploaded_files[0],
                                     "document_detail_id": None,
@@ -162,6 +162,7 @@ def consume_callback(ch, method, properties, body):
             next_message = {"id": hs_id, "files": files_object}
             rabbit_mq.publish(queue=next_queue, message=next_message)
             print(f" [➡] Forwarded to {next_queue}: {next_message}")
+            print("==============================================")
     except json.JSONDecodeError:
         print(f" [!] Error: Invalid JSON format: {body}")
     except Exception as e:

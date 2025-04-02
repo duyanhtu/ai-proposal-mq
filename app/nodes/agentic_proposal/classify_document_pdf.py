@@ -29,19 +29,19 @@ class ClassifyDocumentPdfNodeV1:
     # Defining __call__ method
     def __call__(self, state: StateProposalV1):
         print(self.name)
-
+        hs_id = state["hs_id"]
         # 1️⃣ Lấy dữ liệu từ DB
         query_results = selectSQL(
-            "SELECT * from email_contents WHERE status = 'CHUA_XU_LY' ORDER BY createdate LIMIT 1")
+            f"SELECT * from email_contents WHERE status = 'CHUA_XU_LY' AND hs_id = '{hs_id}'")
 
-        if not query_results:  # Nếu không có dữ liệu
-            print("message: No data to process")
-            return {}
-        id_query_result = query_results[0]['id']
+        # if not query_results:  # Nếu không có dữ liệu
+        #     print("message: No data to process")
+        #     return {}
+        # id_query_result = query_results[0]['id']
 
         # 2️⃣ Cập nhật trạng thái DB -> 'DANG_XU_LY'
         executeSQL(
-            "UPDATE email_contents SET status='DANG_XU_LY' WHERE id=%s", (id_query_result,))
+            f"UPDATE email_contents SET status='DANG_XU_LY' WHERE hs_id = '{hs_id}'")
         return {
             "agentai_name": "proposal_team_v1.0.0",
             "agentai_code": "AGENTAI CODE"
