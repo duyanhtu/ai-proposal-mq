@@ -307,7 +307,7 @@ class ExtractionExperienceMDNodeV1m0p0:
     def __call__(self, state: StateProposalV1):
         start_time = time.perf_counter()
         print(self.name)
-        chapter_content = state["document_content_markdown"]
+        chapter_content = state["document_content_markdown_hsmt"]
         # Không có chương liên quan để bóc tách
         if len(chapter_content) < 1:
             return {

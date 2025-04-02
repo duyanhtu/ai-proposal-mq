@@ -89,7 +89,16 @@ class StateProposalV1(TypedDict):
     result_extraction_finance: List[ExtractFinanceRequirement]
     result_extraction_experience: List[ExtractExperienceRequirement]
     result_extraction_overview: ExtractOverviewBiddingDocuments
+    result_extraction_technology: Any
+    result_extraction_notice_bid: Any
     proposal_id: int
     email_content_id: int
     filename: str
     result_extraction_requirement: Any
+    hs_id: str
+    document_file_md: List[dict]
+    document_content_pdf_all: str
+    document_content_markdown_tbmt: str
+    document_content_markdown_hskt: str
+    document_content_markdown_hsmt: str
+    summary_hsmt: str
