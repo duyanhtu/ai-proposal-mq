@@ -60,6 +60,27 @@ class ProposalV1_0_2(BaseModel):
     status: str
     email_content_id: int
 
+# Proposal table
+class ProposalV1_0_3(BaseModel):
+    """Proposal schema"""
+    investor_name: str
+    proposal_name: str
+    release_date: str
+    project: str
+    package_number: str
+    decision_number: str
+    agentai_name: str
+    agentai_code: str
+    filename: str
+    status: str
+    email_content_id: int
+    selection_method: str
+    field: str
+    execution_duration: str
+    closing_time: str
+    validity_period: str 
+    security_amount: str
+    summary: str
 
 # Finance requirement table
 class FinanceRequirement(BaseModel):
@@ -244,6 +265,43 @@ def insert_proposal_v1_0_2(proposal_info: ProposalV1_0_2):
         '{proposal_info.package_number}','{proposal_info.decision_number}',
         '{proposal_info.agentai_name}','{proposal_info.agentai_code}','{proposal_info.filename}',
         {proposal_info.email_content_id}, '{proposal_info.status}') 
+    RETURNING id;
+"""
+    cur.execute(sql)
+    # get id after insert
+    proposal_id = cur.fetchone()[0]
+    # Committing the transaction
+    conn.commit()
+    # Closing the cursor and connection
+    cur.close()
+    conn.close()
+    return proposal_id
+
+# tutda created
+def insert_proposal_v1_0_3(proposal_info: ProposalV1_0_3):
+    """insert one proposal and return id of proposal"""
+    # Connect to PostgreSQL database
+    conn = psycopg2.connect(CONNECTION_STRING)
+    cur = conn.cursor()
+    sql = f"""
+    INSERT INTO public.proposal
+        (investor_name, proposal_name, 
+        release_date, project, 
+        package_number, decision_number, 
+        agentai_name, agentai_code, filename,
+        email_content_id, status, selection_method,
+        field, execution_duration, closing_time,
+        validity_period, security_amount, summary
+        )
+    VALUES
+        ('{proposal_info.investor_name}','{proposal_info.proposal_name}',
+        {proposal_info.release_date},'{proposal_info.project}',
+        '{proposal_info.package_number}','{proposal_info.decision_number}',
+        '{proposal_info.agentai_name}','{proposal_info.agentai_code}','{proposal_info.filename}',
+        {proposal_info.email_content_id}, '{proposal_info.status}', '{proposal_info.selection_method}',
+        '{proposal_info.field}', '{proposal_info.execution_duration}', {proposal_info.closing_time},
+        '{proposal_info.validity_period}', '{proposal_info.security_amount}', '{proposal_info.summary}'
+        ) 
     RETURNING id;
 """
     cur.execute(sql)
