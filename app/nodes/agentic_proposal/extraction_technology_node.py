@@ -72,6 +72,7 @@ class ExtractionTechnologyMDNodeV1m0p0:
         # Không có chương liên quan để bóc tách
         if len(chapter_content) < 1:
             return {
+
                 "result_extraction_technology": [],
             }
         # Có chương liên quan
@@ -103,6 +104,7 @@ class ExtractionTechnologyMDNodeV1m0p0:
                     KHÔNG tách nội dung mô tả để làm yêu cầu
                     Các yêu cầu phải theo heading hoặc các yêu cầu được mô tả trong bảng.
             2. Mô tả yêu cầu được viết trong 1 đoạn (ngăn cách bằng |   |) với 
+
                 - Nội dung cần trích xuất bắt đầu từ dấu `|` và kết thúc ngay trước dấu `|` tiếp theo (hoặc hết nội dung nếu không có dấu `|` tiếp theo).
                 - Giữ nguyên toàn bộ nội dung gốc trong khoảng giữa hai dấu `|`, bao gồm cả định dạng văn bản, ký tự xuống dòng, hoặc ký tự đặc biệt nếu có, xóa dấu `|`.
                 - Nếu không tìm thấy cặp dấu `|` nào, trả về mảng rỗng.
@@ -133,6 +135,7 @@ Output mong muốn như sau:
     "requirement_level_0": {{
         "muc": "3",
         "requirement_name": "Yêu cầu về kỹ thuật",
+
         "sub_requirements": [
             {{
                 "requirement_level_1": {{
@@ -288,7 +291,7 @@ Return only the JSON in this format:
                         "sub_requirements": [
                             {{
                                 "requirement_level_2": {{
-                                     "muc": "số chỉ mục",
+                                    "muc": "số chỉ mục",
                                     "requirement_name": "tên yêu cầu là các yêu cầu có level nhỏ hơn level 1",
                                     "sub_requirements": [
                                         {{

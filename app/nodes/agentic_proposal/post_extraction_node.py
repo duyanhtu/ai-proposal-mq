@@ -45,11 +45,14 @@ class PostExtractionMDNodeV1:
             except ValueError:
                 return "NULL"
 
+        return "NULL"  # Nếu không khớp bất kỳ format nào
+    
     # Defining __call__ method
     def __call__(self, state: StateProposalV1):
         start_time = time.perf_counter()
         print(self.name)
         # 1. insert into proposal table
+
         proposal_overview = state.get("result_extraction_overview")
         proposal_notice_bid = state.get("result_extraction_notice_bid", {})
         proposal_summary_hsmt = state.get("summary_hsmt", "")
@@ -84,6 +87,7 @@ class PostExtractionMDNodeV1:
             filename="Ho_so_moi_thau.pdf",
             status="EXTRACTED",
             email_content_id=state["email_content_id"],
+
             selection_method=proposal_notice_bid.get("contractor_selection_method",""),
             field=proposal_notice_bid.get("field",""),
             execution_duration=proposal_notice_bid.get("package_execution_time",""),
@@ -91,6 +95,7 @@ class PostExtractionMDNodeV1:
             validity_period=proposal_notice_bid.get("bid_validity",""),
             security_amount=proposal_notice_bid.get("bid_security_amount",""),
             summary=proposal_summary_hsmt,
+
         )
 
         proposal_id = pgdb_proposal.insert_proposal_v1_0_3(proposal_info)
@@ -133,6 +138,7 @@ class PostExtractionMDNodeV1:
         # 5. insert technology
         insert_technical(state["result_extraction_technology"], proposal_id)
         print("inserted technology requirement")
+
         print("proposal_id: ", proposal_id)
         finish_time = time.perf_counter()
         print(f"Total time: {finish_time - start_time} s")

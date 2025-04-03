@@ -111,6 +111,7 @@ def insert_technical(data, proposal_id):
                     process_requirement(
                         {key: value}, level_num, proposal_id)
             print("All requirements inserted successfully.")
+
         except Exception as e:
             print(f"Error processing requirements: {e}")
     except FileNotFoundError:

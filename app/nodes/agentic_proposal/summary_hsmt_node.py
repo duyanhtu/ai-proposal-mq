@@ -28,7 +28,9 @@ class SummaryHSMTNodeV1m0p0:
         # Không có chương liên quan để bóc tách
         if len(chapter_content) < 1:
             return {
+
                 "summary_hsmt": [],
+
             }
         # Có chương liên quan
         # Gọi model xử lý bóc tách dữ liệu về yêu cầu năng lực kinh nghiệm

@@ -14,6 +14,7 @@ class ExtractionNoticeBidMDNodeV1m0p0:
     ExtractionNoticeBidMDNodeV1m0p0
     Tương thích với phiên bản của tutda.
     Bóc tách thông tin các yêu cầu về năng lực kinh nghiệm trong hồ sơ mời thầu .
+
     - Input: document_content_markdown_tbmt
     - Output: result_extraction_notice_bid: json-mode
     """
