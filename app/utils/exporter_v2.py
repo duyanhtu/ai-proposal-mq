@@ -203,7 +203,7 @@ def process_excel_file_no_upload(id: int):
 
     # Tạo thư mục tạm để lưu file nếu chưa tồn tại
     timestamp = datetime.now().strftime("%Y_%m_%d_%S_%M_%H")
-    with tempfile.NamedTemporaryFile(suffix=".xlsx", prefix=f"proposal_id_{id}_{timestamp}", delete=False) as temp_file:
+    with tempfile.NamedTemporaryFile(suffix=".xlsx", prefix=f"Checklist_HSMT_{timestamp}", delete=False) as temp_file:
         temp_file_path = temp_file.name
         # Sao chép file template vào file tạm
         shutil.copyfile(template_file_path, temp_file_path)

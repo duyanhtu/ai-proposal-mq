@@ -33,9 +33,9 @@ class PostExtractionMDNodeV1:
         """
         possible_formats = [
             "%d/%m/%Y %H:%M",  # 28/03/2024 09:00
-            "%d/%m/%Y",        # 28/03/2024
+            "%d/%m/%Y",  # 28/03/2024
             "%Y-%m-%d %H:%M:%S",  # 2024-03-28 09:00:00
-            "%Y-%m-%d"         # 2024-03-28
+            "%Y-%m-%d",  # 2024-03-28
         ]
         for fmt in possible_formats:
             try:
@@ -44,30 +44,6 @@ class PostExtractionMDNodeV1:
                 return f"'{formatted_date}'"
             except ValueError:
                 return "NULL"
-        
-    def check_format_date_v2(self, date: str):
-        """
-        Kiểm tra và chuyển đổi định dạng ngày thành 'YYYY-MM-DD'.
-        Nếu có thời gian, chuyển thành 'YYYY-MM-DD HH:MM:SS'.
-        Nếu không hợp lệ, trả về NULL.
-        """
-        formats = [
-            "%d/%m/%Y %H:%M:%S",  # Định dạng ngày/tháng/năm + giờ:phút:giây
-            "%d/%m/%Y",            # Định dạng ngày/tháng/năm
-            "%Y-%m-%dT%H:%M:%S",   # Định dạng ISO 8601 (YYYY-MM-DDTHH:MM:SS)
-            "%Y-%m-%d",            # Định dạng YYYY-MM-DD
-        ]
-
-        for fmt in formats:
-            try:
-                date_object = datetime.strptime(date, fmt)
-                if "T" in date or " " in date:  # Nếu có thời gian
-                    formatted_date = date_object.strftime("%Y-%m-%d %H:%M:%S")
-                else:  # Nếu chỉ có ngày
-                    formatted_date = date_object.strftime("%Y-%m-%d")
-                return f"{formatted_date}"
-            except ValueError:
-                continue  # Nếu format không khớp, thử format tiếp theo
 
         return "NULL"  # Nếu không khớp bất kỳ format nào
     
@@ -76,13 +52,29 @@ class PostExtractionMDNodeV1:
         start_time = time.perf_counter()
         print(self.name)
         # 1. insert into proposal table
-        proposal_overview = state["result_extraction_overview"]
-        proposal_notice_bid = state["result_extraction_notice_bid"]
-        proposal_summary_hsmt = state["summary_hsmt"]
+
+        proposal_overview = state.get("result_extraction_overview")
+        proposal_notice_bid = state.get("result_extraction_notice_bid", {})
+        proposal_summary_hsmt = state.get("summary_hsmt", "")
         # date_object = datetime.strptime(proposal_overview.release_date, "%d/%m/%Y")
         # formatted_date = date_object.strftime("%Y-%m-%d")
-        formatted_date = self.check_format_date(proposal_overview.release_date)
-        closing_time = self.check_format_date(proposal_notice_bid["bid_closing_time"])
+
+        # Đảm bảo proposal_notice_bid là dict (nếu là list, lấy phần tử đầu tiên)
+        if isinstance(proposal_notice_bid, list) and proposal_notice_bid:
+            proposal_notice_bid = proposal_notice_bid[0]
+        if not isinstance(proposal_notice_bid, dict):  # Nếu vẫn không phải dict, đặt thành {}
+            proposal_notice_bid = {}
+
+        formatted_date = (
+            self.check_format_date(proposal_overview.release_date)
+            if proposal_overview and proposal_overview.release_date
+            else "NULL"
+        )
+        closing_time = (
+            self.check_format_date(proposal_notice_bid["bid_closing_time"])
+            if proposal_notice_bid and "bid_closing_time" in proposal_notice_bid
+            else "NULL"
+        )
         proposal_info = pgdb_proposal.ProposalV1_0_3(
             investor_name=proposal_overview.investor_name,
             proposal_name=proposal_overview.proposal_name,
@@ -95,13 +87,15 @@ class PostExtractionMDNodeV1:
             filename="Ho_so_moi_thau.pdf",
             status="EXTRACTED",
             email_content_id=state["email_content_id"],
-            selection_method=proposal_notice_bid["contractor_selection_method"],
-            field=proposal_notice_bid["field"],
-            execution_duration=proposal_notice_bid["package_execution_time"],
+
+            selection_method=proposal_notice_bid.get("contractor_selection_method",""),
+            field=proposal_notice_bid.get("field",""),
+            execution_duration=proposal_notice_bid.get("package_execution_time",""),
             closing_time=closing_time,
-            validity_period=proposal_notice_bid["bid_validity"],
-            security_amount=proposal_notice_bid["bid_security_amount"],
-            summary=proposal_summary_hsmt
+            validity_period=proposal_notice_bid.get("bid_validity",""),
+            security_amount=proposal_notice_bid.get("bid_security_amount",""),
+            summary=proposal_summary_hsmt,
+
         )
 
         proposal_id = pgdb_proposal.insert_proposal_v1_0_3(proposal_info)
@@ -144,6 +138,8 @@ class PostExtractionMDNodeV1:
         # 5. insert technology
         insert_technical(state["result_extraction_technology"], proposal_id)
         print("inserted technology requirement")
+
+        print("proposal_id: ", proposal_id)
         finish_time = time.perf_counter()
         print(f"Total time: {finish_time - start_time} s")
         return {"proposal_id": proposal_id}

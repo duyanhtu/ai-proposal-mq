@@ -9,7 +9,7 @@ from app.storage.postgre import selectSQL, executeSQL
 from app.utils.mail import send_email_with_attachments
 
 
-class GenerateExcelReplyEmailNodeV1:
+class  GenerateExcelReplyEmailNodeV1:
     """
     Generate excel and reply email node v1
     """
@@ -22,15 +22,28 @@ class GenerateExcelReplyEmailNodeV1:
         results = selectSQL(sql)
         if not results:
             return {"status": "success", "message": "No pending tasks found"}
+        response_excel, response_docx, response_md_content = None, None, None
+        # Tạo file Excel nếu có HSMT
+        if state["is_exist_contnet_markdown_hsmt"]:
+            response_excel = process_excel_file_no_upload(results[0]["id"])
+            response_md_content = convert_md_to_docx(results[0]["summary"], output_filename="Tom_tat_noi_dung_ho_so_moi_thau.docx")
+            response_md_content = json.loads(response_md_content.body)  # Parse JSON string if necessary
 
-        # Yo i get excel
-        response_excel = process_excel_file_no_upload(results[0]["id"])
-        response_docx = export_docs_from_file(results[0]["id"], output_filename="Ho_so_ky_thuat.docx")
-        response_md_content = convert_md_to_docx(results[0]["summary"], output_filename="Summary_MD_Content.docx")
-        response_docx = json.loads(response_docx.body)  # Parse JSON string if necessary
-        response_md_content = json.loads(response_md_content.body)  # Parse JSON string if necessary
-        # Gom đường dẫn file từ các response
-        temp_file_path = [response_excel.path, response_docx["file_path"], response_md_content["file_path"]]
+
+        # Xuất DOCX nếu có HSKT
+        if state["is_exist_contnet_markdown_hskt"]:
+            response_docx = export_docs_from_file(results[0]["id"], output_filename="Ho_so_ky_thuat.docx")
+            response_docx = json.loads(response_docx.body)  # Parse JSON string if necessary
+        
+        # Tạo danh sách file hợp lệ
+        temp_file_path = [
+            response_excel.path if response_excel else None,
+            response_docx["file_path"] if response_docx else None,
+            response_md_content["file_path"] if response_md_content else None,
+        ]
+        # Lọc bỏ None
+        temp_file_path = [path for path in temp_file_path if path]
+
 
         # Lấy original_message_id từ database theo email_content_id
         sql = "SELECT * from email_contents where id = %s"
@@ -43,9 +56,9 @@ class GenerateExcelReplyEmailNodeV1:
         response = send_email_with_attachments(
             subject="Kết quả phân tích hồ sơ",
             body="""
-                <h2 style="font-weight: bold;>Kính gửi anh chị<h2>,
-                <p>Trong file đính kèm là kết quả của hệ thống AI xử lý bóc tách yêu cầu tự động.</p>
-                <p>Vui lòng kiểm tra lại nội dung tài liệu này để đảm bảo tính chính xác của thông tin.</p>
+                Kính gửi anh chị,
+                Trong file đính kèm là kết quả của hệ thống AI xử lý bóc tách yêu cầu tự động.
+                Vui lòng kiểm tra lại nội dung tài liệu này để đảm bảo tính chính xác của thông tin.
             """,
             to_emails=email_sql[0]['sender'],
             attachment_paths=temp_file_path

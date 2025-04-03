@@ -47,6 +47,7 @@ class PrepareDataDocumentNodeV1:
 
     def __init__(self, name: str):
         self.name = name
+        self.downloaded_files = []
 
     def download_file(self, dfm):
         """Tải file từ MinIO nếu chưa có"""
@@ -67,6 +68,7 @@ class PrepareDataDocumentNodeV1:
             access_key=MINIO_ACCESS_KEY,
             secret_key=MINIO_SECRET_KEY,
         )
+        self.downloaded_files.append(download_path)
         print(f"[✔] Đã tải xong: {file_name}")
         return file_md_downloaded
 
@@ -108,6 +110,15 @@ class PrepareDataDocumentNodeV1:
                 document_content_markdown_hskt = document_content_markdown
             elif dfm["type"] == "HSMT":
                 document_content_markdown_hsmt = document_content_markdown
+
+        # 3. Xóa file được tải xuống trong thư mục temp
+        for file_path in self.downloaded_files:
+            try:
+                os.remove(file_path)
+                print(f"[🗑] Đã xóa: {file_path}")
+            except Exception as e:
+                print(f"[⚠] Lỗi khi xóa {file_path}: {e}")
+
         finish_time = time.perf_counter()
         print(f"Total time: {finish_time - start_time} s")
         return {

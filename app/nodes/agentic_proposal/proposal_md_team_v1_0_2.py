@@ -152,10 +152,8 @@ def proposal_md_team_graph_v1_0_2():
     # from Post-Extraction to Generate Excel Reply Email
     builder.add_edge(post_extraction_md_node_v1.name, generate_excel_reply_email_node_v1.name)
     # 13-> END
-    # from Post-Extraction to Prepare Data Document
-    builder.add_edge(generate_excel_reply_email_node_v1.name, prepare_data_document_node_v1.name)
-    # from Prepare Data Document to END
-    builder.add_edge(prepare_data_document_node_v1.name, END)
+    # from Generate Excel Reply Email to END
+    builder.add_edge(generate_excel_reply_email_node_v1.name, END)
     # Compile graph
     #
     

@@ -101,4 +101,8 @@ class StateProposalV1(TypedDict):
     document_content_markdown_tbmt: str
     document_content_markdown_hskt: str
     document_content_markdown_hsmt: str
+
     summary_hsmt: str
+    is_exist_contnet_markdown_tbmt: bool
+    is_exist_contnet_markdown_hskt: bool
+    is_exist_contnet_markdown_hsmt: bool
