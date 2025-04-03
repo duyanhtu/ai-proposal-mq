@@ -19,6 +19,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application code
 COPY . .
 
+COPY /temp /app/temp
+
 # Ensure temp directory has proper permissions
 RUN chmod -R 755 /app/temp/
 
