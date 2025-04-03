@@ -24,9 +24,6 @@ COPY ./credentials.json /app/credentials.json
 COPY ./token.pickle /app/token.pickle
 COPY /temp /app/temp
 
-# Ensure temp directory has proper permissions
-RUN chmod -R 755 /app/temp/
-
 # Create a startup script to run both processes
 RUN echo '#!/bin/bash\n\
 python main.py &\n\
