@@ -4,17 +4,27 @@ FROM python:3.12-slim as builder
 # Set working directory
 WORKDIR /app
 
-# Install build dependencies
+# Install build dependencies including PostgreSQL dev packages
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends gcc libc6-dev && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get install -y --no-install-recommends \
+    gcc \
+    libc6-dev \
+    libpq-dev \
+    libffi-dev \
+    python3-dev \
+    libpoppler-cpp-dev \
+    tesseract-ocr \
+    libtesseract-dev \
+    poppler-utils \
+    libmagic1 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir --user -r requirements.txt
 
-# Runtime stage - uses a clean slim image
+# Runtime stage with minimal dependencies
 FROM python:3.12-slim
 
 WORKDIR /app
@@ -22,6 +32,16 @@ WORKDIR /app
 # Copy installed packages from builder stage
 COPY --from=builder /root/.local /root/.local
 ENV PATH=/root/.local/bin:$PATH
+
+# Install runtime dependencies only
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    libpq5 \
+    tesseract-ocr \
+    poppler-utils \
+    libmagic1 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy only necessary files
 COPY temp/ /app/temp/
