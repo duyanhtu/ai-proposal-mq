@@ -179,6 +179,7 @@ def process_excel_file_no_upload(id: int):
             BASE_DIR,
             "temp",
             "template_checklist_v1.xlsx",
+
         )
         
         # Verify template file exists
