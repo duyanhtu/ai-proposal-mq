@@ -99,6 +99,11 @@ def insert_technical(data, proposal_id):
             data = json.load(file) """
  
         try:
+            # Insert to technical requirement json
+            r = json.dumps(data)
+            #loaded_r = json.loads(r)
+            executeSQL("INSERT INTO technical_requirement_json (proposal_id,requirement_json) VALUES (%s,%s)",(proposal_id,r))
+            
             # Process the root requirement with the fixed proposal_id
             for key, value in data.items():
                 if key.startswith("requirement_level_"):
@@ -106,12 +111,6 @@ def insert_technical(data, proposal_id):
                     process_requirement(
                         {key: value}, level_num, proposal_id)
             print("All requirements inserted successfully.")
-
-            # Insert to technical requirement json
-            r = json.dumps(data)
-            #loaded_r = json.loads(r)
-            executeSQL("INSERT INTO technical_requirement_json (proposal_id,requirement_json) VALUES (%s,%s)",(proposal_id,r))
-
         except Exception as e:
             print(f"Error processing requirements: {e}")
     except FileNotFoundError:

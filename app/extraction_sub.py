@@ -34,13 +34,13 @@ template_file_path = os.path.join(
     "temp"
 )
 
-def get_types_for_document_detail_id(document_ids):
+def get_types_for_document_detail_id(document_detail_ids_str):
     """Lấy type của từng document_detail_id từ bảng email_content."""
     sql = f"""
         SELECT dd.id AS document_detail_id, ec.type
         FROM document_detail dd
         JOIN email_contents ec ON dd.email_content_id::INTEGER = ec.id::INTEGER
-        WHERE dd.id IN {document_ids};
+        WHERE dd.id IN ({document_detail_ids_str});
     """
     
     results = pgdb.select(sql)  # Thực hiện truy vấn
@@ -54,8 +54,9 @@ def consume_callback(ch, method, properties, body):
         print(f" [x] Received: {message}\n")
         hs_id=message["id"]
         files=message["files"]
-        document_detail_ids = tuple(file["document_detail_id"] for file in files)
-        type_mapping = get_types_for_document_detail_id(document_detail_ids)
+        document_detail_ids = [str(file["document_detail_id"]) for file in files]  # Chuyển thành danh sách chuỗi
+        document_detail_ids_str = ", ".join(document_detail_ids)  # Nối thành chuỗi
+        type_mapping = get_types_for_document_detail_id(document_detail_ids_str)
         for file in message["files"]:
             file["type"] = type_mapping.get(file["document_detail_id"], "unknown")
         inputs = {
@@ -65,6 +66,7 @@ def consume_callback(ch, method, properties, body):
         res = proposal_md_team_graph_v1_0_2_instance.invoke(
             inputs
         )
+        print(f"Done with {hs_id}")
         return res
     except json.JSONDecodeError:
         print(f" [!] Error: Invalid JSON format: {body}")

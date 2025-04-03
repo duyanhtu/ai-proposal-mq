@@ -31,9 +31,13 @@ class ClassifyDocumentPdfNodeV1:
         print(self.name)
         hs_id = state["hs_id"]
         # 1️⃣ Lấy dữ liệu từ DB
-        query_results = selectSQL(
+        selectSQL(
             f"SELECT * from email_contents WHERE status = 'CHUA_XU_LY' AND hs_id = '{hs_id}'")
 
+        # Kiểm tra nội dung markdown có rỗng hay không
+        is_exist_content_markdown_tbmt = bool(state["document_content_markdown_tbmt"].strip())
+        is_exist_content_markdown_hskt = bool(state["document_content_markdown_hskt"].strip())
+        is_exist_content_markdown_hsmt = bool(state["document_content_markdown_hsmt"].strip())
         # if not query_results:  # Nếu không có dữ liệu
         #     print("message: No data to process")
         #     return {}
@@ -43,6 +47,9 @@ class ClassifyDocumentPdfNodeV1:
         executeSQL(
             f"UPDATE email_contents SET status='DANG_XU_LY' WHERE hs_id = '{hs_id}'")
         return {
+            "is_exist_contnet_markdown_tbmt": is_exist_content_markdown_tbmt,
+            "is_exist_contnet_markdown_hskt": is_exist_content_markdown_hskt,
+            "is_exist_contnet_markdown_hsmt": is_exist_content_markdown_hsmt,
             "agentai_name": "proposal_team_v1.0.0",
             "agentai_code": "AGENTAI CODE"
         }

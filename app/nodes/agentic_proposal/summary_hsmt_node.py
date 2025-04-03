@@ -28,7 +28,7 @@ class SummaryHSMTNodeV1m0p0:
         # Không có chương liên quan để bóc tách
         if len(chapter_content) < 1:
             return {
-                "result_extraction_experience": [],
+                "summary_hsmt": [],
             }
         # Có chương liên quan
         # Gọi model xử lý bóc tách dữ liệu về yêu cầu năng lực kinh nghiệm
@@ -63,9 +63,6 @@ class SummaryHSMTNodeV1m0p0:
                 Tiêu chí kỹ thuật
                 Tiêu chí tài chính
                 Các yếu tố ưu tiên khác (nếu có)
-            Hãy tóm tắt ngắn gọn nhưng đầy đủ, đảm bảo không bỏ sót thông tin quan trọng.
-            KHÔNG tự ý thêm vào các nội dung không có.
-                    
           
             Nội dung hồ sơ kỹ thuật:
                 {content}
