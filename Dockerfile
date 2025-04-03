@@ -10,6 +10,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+RUN mkdir /temp
+
 # Copy requirements first for better layer caching
 COPY requirements.txt .
 
@@ -17,13 +19,13 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy temp directory with templates first to make it explicit
-COPY temp/ /app/temp/
+COPY temp/ /temp/
 
 # Copy the rest of the application code
 COPY . .
 
 # Ensure temp directory has proper permissions
-RUN chmod -R 755 /app/temp/
+RUN chmod -R 755 /temp/
 
 # Create a startup script to run both processes
 RUN echo '#!/bin/bash\n\
