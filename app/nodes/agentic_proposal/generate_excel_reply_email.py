@@ -29,6 +29,7 @@ class  GenerateExcelReplyEmailNodeV1:
             response_md_content = convert_md_to_docx(results[0]["summary"], output_filename="Tom_tat_noi_dung_ho_so_moi_thau.docx")
             response_md_content = json.loads(response_md_content.body)  # Parse JSON string if necessary
 
+
         # Xuất DOCX nếu có HSKT
         if state["is_exist_contnet_markdown_hskt"]:
             response_docx = export_docs_from_file(results[0]["id"], output_filename="Ho_so_ky_thuat.docx")
@@ -42,6 +43,7 @@ class  GenerateExcelReplyEmailNodeV1:
         ]
         # Lọc bỏ None
         temp_file_path = [path for path in temp_file_path if path]
+
 
         # Lấy original_message_id từ database theo email_content_id
         sql = "SELECT * from email_contents where id = %s"

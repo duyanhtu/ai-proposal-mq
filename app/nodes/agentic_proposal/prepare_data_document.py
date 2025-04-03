@@ -110,6 +110,7 @@ class PrepareDataDocumentNodeV1:
                 document_content_markdown_hskt = document_content_markdown
             elif dfm["type"] == "HSMT":
                 document_content_markdown_hsmt = document_content_markdown
+
         # 3. Xóa file được tải xuống trong thư mục temp
         for file_path in self.downloaded_files:
             try:
@@ -117,6 +118,7 @@ class PrepareDataDocumentNodeV1:
                 print(f"[🗑] Đã xóa: {file_path}")
             except Exception as e:
                 print(f"[⚠] Lỗi khi xóa {file_path}: {e}")
+
         finish_time = time.perf_counter()
         print(f"Total time: {finish_time - start_time} s")
         return {

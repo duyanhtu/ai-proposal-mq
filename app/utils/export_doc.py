@@ -481,6 +481,7 @@ def export_docs_from_file(
     TEMPDIR = os.path.join(os.path.dirname(__file__), "..", "..", "temp")
     try:
         # Lấy dữ liệu JSON từ cơ sở dữ liệu bằng proposal_id
+
         sql = f"""select * from technical_requirement_json where proposal_id = {proposal_id}"""
         contentdb = pgdb.select(sql)
 
