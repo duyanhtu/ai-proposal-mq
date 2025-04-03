@@ -17,7 +17,8 @@ DOWNLOADS_DIR = str(Path.home() / "Downloads")
 
 # Đường dẫn đến file template mặc định - cập nhật theo file mới
 TEMPLATE_PATH = "TemplateTBDU_Bo22.docx"
-
+BASE_DIR = os.environ.get('APP_BASE_DIR', os.path.dirname(
+    os.path.dirname(os.path.dirname(__file__))))
 router = APIRouter(
     prefix="/export_doc",
     tags=["export_doc"],
@@ -478,7 +479,6 @@ def export_docs_from_file(
     Returns:
         JSON response với thông tin về file
     """
-    TEMPDIR = os.path.join(os.path.dirname(__file__), "..", "..", "temp")
     try:
         # Lấy dữ liệu JSON từ cơ sở dữ liệu bằng proposal_id
 
@@ -544,7 +544,7 @@ def export_docs_from_file(
 
         # Sử dụng Template.docx từ thư mục temp trong dự án
         try:
-            template_path = os.path.join("temp", "Template.docx")
+            template_path = os.path.join(BASE_DIR, "Template.docx")
             if not os.path.exists(template_path):
                 raise HTTPException(
                     status_code=404, detail=f"Default template file not found: {template_path}")
