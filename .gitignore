@@ -24,4 +24,3 @@ token.pickle
 # vim temporary files
 *~
 .*.sw?
-.env
