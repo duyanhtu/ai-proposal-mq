@@ -5,10 +5,9 @@ FROM python:3.12-alpine
 WORKDIR /app
 
 # Install system dependencies required for Python packages
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache \
+    build-base \
+    bash
 
 # Copy requirements first for better layer caching
 COPY requirements.txt .
@@ -35,8 +34,3 @@ tail -f /dev/null\n'\
 
 # Set the startup script as the entry point
 CMD ["/bin/bash", "/app/start.sh"]
-
-# Make sure scripts are executable
-#RUN chmod +x run_all.py
-# Default command
-#CMD ["python", "run_all.py"]
