@@ -14,8 +14,9 @@ class ExtractionNoticeBidMDNodeV1m0p0:
     ExtractionNoticeBidMDNodeV1m0p0
     Tương thích với phiên bản của tutda.
     Bóc tách thông tin các yêu cầu về năng lực kinh nghiệm trong hồ sơ mời thầu .
-    - Input: chapter_content: List[str]
-    - Output: result_extraction_experience: List[ExtractFinanceRequirement]
+
+    - Input: document_content_markdown_tbmt
+    - Output: result_extraction_notice_bid: json-mode
     """
 
     def __init__(self, name: str):
@@ -29,7 +30,7 @@ class ExtractionNoticeBidMDNodeV1m0p0:
         # Không có chương liên quan để bóc tách
         if len(chapter_content) < 1:
             return {
-                "result_extraction_experience": [],
+                "result_extraction_notice_bid": [],
             }
         # Có chương liên quan
         # Gọi model xử lý bóc tách dữ liệu về yêu cầu năng lực kinh nghiệm
