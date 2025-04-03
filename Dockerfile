@@ -20,8 +20,8 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 COPY ./app /app/app
 COPY ./main.py /app/main.py
 COPY ./main1.py /app/main1.py
-COPY ./credentials.json /code/credentials.json
-COPY ./token.pickle /code/token.pickle
+COPY ./credentials.json /app/credentials.json
+COPY ./token.pickle /app/token.pickle
 COPY /temp /app/temp
 
 # Ensure temp directory has proper permissions
