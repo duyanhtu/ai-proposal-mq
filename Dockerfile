@@ -18,11 +18,12 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Copy the rest of the application code
 COPY ./app /app/app
+COPY .env /app/.env
 COPY ./main.py /app/main.py
 COPY ./main1.py /app/main1.py
 COPY ./credentials.json /app/credentials.json
 COPY ./token.pickle /app/token.pickle
-COPY /temp /app/temp
+COPY ./temp /app/temp
 
 # Create a startup script to run both processes
 RUN echo '#!/bin/bash\n\
