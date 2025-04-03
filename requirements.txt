@@ -31,6 +31,7 @@ email_validator==2.2.0
 emoji==2.14.0
 et_xmlfile==2.0.0
 eval_type_backport==0.2.2
+fastapi==0.115.12
 fastapi-cli==0.0.7
 filelock==3.17.0
 filetype==1.2.0

@@ -1,8 +1,8 @@
 from typing import List
 
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from starlette.config import Config
 from starlette.datastructures import CommaSeparatedStrings
-from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class EnvSettings(BaseSettings, case_sensitive=True):
@@ -10,7 +10,7 @@ class EnvSettings(BaseSettings, case_sensitive=True):
 
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = ""
-    OPENAI_EMBEDDING_MODEL: str = ""    
+    OPENAI_EMBEDDING_MODEL: str = ""
     LANGFUSE_SECRET_KEY_AI_PROPOSAL: str = ""
     LANGFUSE_PUBLIC_KEY_AI_PROPOSAL: str = ""
     LANGFUSE_BASE_URL: str = ""
@@ -29,7 +29,7 @@ class EnvSettings(BaseSettings, case_sensitive=True):
     MINIO_SECRET_KEY: str = ""
     MINIO_SECURE: bool = False
     MINIO_BUCKET: str = ""
-    MAX_RETRIE: int = 3
+    MAX_RETRIES: int = 3
     RETRY_DELAY: int = 30
 
     model_config = SettingsConfigDict(env_file=".env", extra="allow")
