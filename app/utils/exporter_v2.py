@@ -1,20 +1,23 @@
 import json
 import os
 import shutil
-from datetime import datetime
 import tempfile
+from datetime import datetime
 from typing import Any, Dict, List
-from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
-from fastapi.responses import FileResponse
+
 import openpyxl
+from fastapi import HTTPException
+from fastapi.responses import FileResponse
 from openpyxl.cell.cell import MergedCell
 from openpyxl.styles import Alignment, Border, Font, Side
 
 from app.storage import pgdb
-from app.utils.mail import send_email_with_attachments
 
-
+BASE_DIR = os.environ.get('APP_BASE_DIR', os.path.dirname(
+    os.path.dirname(os.path.dirname(__file__))))
 # Hàm tìm vị trí header và dữ liệu tương ứng
+
+
 def find_headers(sheet, targets: List[str]) -> List[Dict[str, Any]]:
     """
     Tìm vị trí của các header trong sheet
@@ -63,7 +66,8 @@ def merge_descriptions_by_position(data: List[Dict[str, Any]]) -> List[Dict[str,
                 "descriptions": [],
             }
         grouped_data[position]["descriptions"].append(
-            {"name": item.get("name", ""), "description": item.get("description", "")}
+            {"name": item.get("name", ""),
+             "description": item.get("description", "")}
         )
     # print("grouped_data: ", grouped_data)
     # Chuyển đổi thành list và gộp description
@@ -100,7 +104,8 @@ def fill_data(sheet, header_position, data: List[Dict[str, Any]]):
         top=Side(style="thin"),
         bottom=Side(style="thin"),
     )
-    center_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    center_alignment = Alignment(
+        horizontal="center", vertical="center", wrap_text=True)
     for idx, item in enumerate(data):
         row_num = start_row + idx
         is_personal = header_position["value"] == "nhân sự"
@@ -160,12 +165,13 @@ def fill_data(sheet, header_position, data: List[Dict[str, Any]]):
         for col in range(1, sheet.max_column + 1):
             sheet.cell(row=row_num, column=col).border = thin_border
 
+
 def process_excel_file_no_upload(id: int):
     """
     Xử lý file Excel và trả về đường dẫn file đã xử lý
     """
     template_file_path = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+        BASE_DIR,
         "temp",
         "template_checklist_v1.xlsx",
     )
