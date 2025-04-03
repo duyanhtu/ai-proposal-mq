@@ -16,9 +16,6 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy temp directory with templates first to make it explicit
-COPY temp/ /app/temp/
-
 # Copy the rest of the application code
 COPY . .
 
