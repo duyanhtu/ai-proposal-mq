@@ -6,13 +6,16 @@ import minio
 from minio.error import S3Error
 from pathlib import Path
 
+from app.config.env import EnvSettings
 
-MINIO_API_ENDPOINT = "10.4.18.153:9000"  # Cổng API
-MINIO_CONSOLE_ENDPOINT = "10.4.18.153:9001"  # Cổng Console (UI)
-MINIO_ACCESS_KEY = "Tzh7HOxDDJYbXl3dVtu3"
-MINIO_SECRET_KEY = "m9CzH59Xebwpdo5lI3oSV50mMkeZOZyrJXHp8XSr"
-MINIO_SECURE = False  # Set to True if using HTTPS
-MINIO_BUCKET = "ai-proposal"  # Bucket name
+
+MINIO_API_ENDPOINT = EnvSettings().MINIO_API_ENDPOINT  # Cổng API
+MINIO_CONSOLE_ENDPOINT = EnvSettings().MINIO_CONSOLE_ENDPOINT  # Cổng Console (UI)
+MINIO_ACCESS_KEY = EnvSettings().MINIO_ACCESS_KEY
+MINIO_SECRET_KEY = EnvSettings().MINIO_SECRET_KEY
+MINIO_SECURE = EnvSettings().MINIO_SECURE
+MINIO_BUCKET = EnvSettings().MINIO_BUCKET
+
 
 # Thư mục Downloads của người dùng
 HOME_DIR = str(Path.home())
