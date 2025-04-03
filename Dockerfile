@@ -23,7 +23,7 @@ COPY temp/ /app/temp/
 COPY . .
 
 # Ensure temp directory has proper permissions
-RUN chmod -R 755 /temp/
+RUN chmod -R 755 /app/temp/
 
 # Create a startup script to run both processes
 RUN echo '#!/bin/bash\n\
