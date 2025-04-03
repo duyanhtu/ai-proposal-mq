@@ -25,8 +25,18 @@ COPY . .
 # Ensure temp directory has proper permissions
 RUN chmod -R 755 /app/temp/
 
-# Make sure scripts are executable
-RUN chmod +x run_all.py
+# Create a startup script to run both processes
+RUN echo '#!/bin/bash\n\
+python main.py &\n\
+python main1.py &\n\
+# Keep the container running\n\
+tail -f /dev/null\n'\
+> /app/start.sh && chmod +x /app/start.sh
 
+# Set the startup script as the entry point
+CMD ["/bin/bash", "/app/start.sh"]
+
+# Make sure scripts are executable
+#RUN chmod +x run_all.py
 # Default command
-CMD ["python", "run_all.py"]
+#CMD ["python", "run_all.py"]
