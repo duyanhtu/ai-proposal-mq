@@ -2,6 +2,7 @@ import io
 import json
 import os
 from pathlib import Path
+import traceback
 from typing import Any, Dict, Optional
 
 import chardet  # Thêm thư viện để phát hiện encoding
@@ -25,7 +26,7 @@ router = APIRouter(
     dependencies=[],
     responses={404: {"description": "Not found"}},
 )
-
+TEMPDIR = os.path.join(BASE_DIR, "temp")
 
 def set_table_border_style(table):
     """
@@ -544,10 +545,11 @@ def export_docs_from_file(
 
         # Sử dụng Template.docx từ thư mục temp trong dự án
         try:
-            template_path = os.path.join(BASE_DIR, "Template.docx")
+            template_path = os.path.join(BASE_DIR,"temp", "Template.docx")
+
             if not os.path.exists(template_path):
                 raise HTTPException(
-                    status_code=404, detail=f"Default template file not found: {template_path}")
+                    status_code=404, detail=f"Default template file not found: {template_path} at {traceback.format_exc()}")
             doc = Document(template_path)
         except Exception as e:
             raise HTTPException(
