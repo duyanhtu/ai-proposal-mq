@@ -267,42 +267,30 @@ def process_excel_file_no_upload(id: int):
     """
     Xử lý file Excel và trả về đường dẫn file đã xử lý
     """
-    try:
-        # Check for valid ID
-        if not isinstance(id, int) or id <= 0:
-            raise ValueError("ID phải là một số nguyên dương")
-
-        template_file_path = os.path.join(
-            BASE_DIR,
-            "temp",
-            "template_checklist_v1.xlsx",
+    template_file_path = os.path.join(
+        BASE_DIR,
+        "temp",
+        "template_checklist_v1.xlsx",
+    )
+    # Truy vấn cơ sở dữ liệu
+    proposal_sql = f"""select * from proposal where id = {id}"""
+    proposal = pgdb.select(proposal_sql)
+    if not proposal:
+        raise HTTPException(
+            status_code=404, detail="Không tìm thấy hồ sơ thầu với ID này"
         )
 
-        # Verify template file exists
-        if not os.path.exists(template_file_path):
-            raise FileNotFoundError(
-                f"File template không tồn tại tại đường dẫn: {template_file_path}")
-
-        try:
-            # Database operations
-            proposal_sql = f"""select * from proposal where id = {id}"""
-            proposal = pgdb.select(proposal_sql)
-            if not proposal:
-                raise HTTPException(
-                    status_code=404, detail="Không tìm thấy hồ sơ thầu với ID này"
-                )
-
-            personal_requirement_sql = f"""
-                select hr.position, hr.proposal_id , hr.quantity, hdr.name, hdr.description, hdr.document_name
-                from hr_requirement hr, hr_detail_requirement hdr
-                where hr.proposal_id = {id} and hr.id = hdr.hr_id
-            """
-            experience_requirement_sql = (
-                f"""select * from experience_requirement where proposal_id = {id}"""
-            )
-            finance_requirement_sql = (
-                f"""select * from finance_requirement where proposal_id = {id}"""
-            )
+    personal_requirement_sql = f"""
+        select hr.position, hr.proposal_id , hr.quantity, hdr.name, hdr.description, hdr.document_name
+        from hr_requirement hr, hr_detail_requirement hdr
+        where hr.proposal_id = {id} and hr.id = hdr.hr_id
+    """
+    experience_requirement_sql = (
+        f"""select * from experience_requirement where proposal_id = {id}"""
+    )
+    finance_requirement_sql = (
+        f"""select * from finance_requirement where proposal_id = {id}"""
+    )
 
     data_map = {
         "personal_requirement": pgdb.select(personal_requirement_sql),
@@ -432,35 +420,18 @@ def process_excel_file_no_upload_with_compliance(id: int):
 
     print("data_map: ", data_map)
 
-       # Gộp description theo position cho personal_requirement
-       if "personal_requirement" in data_map and data_map["personal_requirement"]:
-            try:
-                data_map["personal_requirement"] = merge_descriptions_by_position(
-                    data_map["personal_requirement"]
-                )
-            except Exception as merge_error:
-                raise HTTPException(
-                    status_code=500, detail=f"Lỗi khi gộp dữ liệu nhân sự: {str(merge_error)}"
-                ) from merge_error
+    # Gộp description theo position cho personal_requirement
+    if "personal_requirement" in data_map and data_map["personal_requirement"]:
+        data_map["personal_requirement"] = merge_descriptions_by_position(
+            data_map["personal_requirement"]
+        )
 
-        # Tạo thư mục tạm để lưu file nếu chưa tồn tại
-        temp_file_path = None
-        try:
-            timestamp = datetime.now().strftime("%Y_%m_%d_%S_%M_%H")
-            with tempfile.NamedTemporaryFile(suffix=".xlsx", prefix=f"Checklist_HSMT_{timestamp}", delete=False) as temp_file:
-                temp_file_path = temp_file.name
-                # Sao chép file template vào file tạm
-                shutil.copyfile(template_file_path, temp_file_path)
-        except Exception as temp_file_error:
-            if temp_file_path and os.path.exists(temp_file_path):
-                try:
-                    os.remove(temp_file_path)
-                except:
-                    pass
-            raise HTTPException(
-                status_code=500, detail=f"Lỗi khi tạo file tạm: {str(temp_file_error)}"
-            ) from temp_file_error
-
+    # Tạo thư mục tạm để lưu file nếu chưa tồn tại
+    timestamp = datetime.now().strftime("%Y_%m_%d_%S_%M_%H")
+    with tempfile.NamedTemporaryFile(suffix=".xlsx", prefix=f"Checklist_HSMT_{timestamp}", delete=False) as temp_file:
+        temp_file_path = temp_file.name
+        # Sao chép file template vào file tạm
+        shutil.copyfile(template_file_path, temp_file_path)
         try:
             # Đọc file Excel từ UploadFile
             workbook = openpyxl.load_workbook(temp_file_path)
@@ -526,21 +497,7 @@ def process_excel_file_no_upload_with_compliance(id: int):
                 headers={"X-Metadata": metadata_json},
             )
 
-        except Exception as excel_error:
-            if temp_file_path and os.path.exists(temp_file_path):
-                try:
-                    os.remove(temp_file_path)
-                except:
-                    pass
+        except Exception as e:
             raise HTTPException(
-                status_code=500, detail=f"Xử lý file Excel thất bại: {str(excel_error)}"
-            ) from excel_error
-
-    except HTTPException:
-        # Re-raise HTTP exceptions without modification
-        raise
-    except Exception as e:
-        # Catch any other unexpected errors
-        raise HTTPException(
-            status_code=500, detail=f"Lỗi không xác định: {str(e)}"
-        ) from e
+                status_code=500, detail=f"Xử lý file Excel thất bại: {str(e)}"
+            ) from e
