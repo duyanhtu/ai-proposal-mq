@@ -20,7 +20,6 @@ venv
 .venv
 docs.zip
 archive.zip
-token.pickle
 # vim temporary files
 *~
 .*.sw?

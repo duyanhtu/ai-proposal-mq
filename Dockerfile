@@ -11,19 +11,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better layer caching
-COPY requirements.txt .
+COPY ./requirements.txt /app/requirements.txt
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy temp directory with templates first to make it explicit
-COPY temp/ /app/temp/
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Copy the rest of the application code
-COPY . .
-
-# Ensure temp directory has proper permissions
-RUN chmod -R 755 /app/temp/
+COPY ./app /app/app
+COPY .env /app/.env
+COPY ./main.py /app/main.py
+COPY ./main1.py /app/main1.py
+COPY ./credentials.json /app/credentials.json
+COPY ./token.pickle /app/token.pickle
+COPY ./temp /app/temp
 
 # Create a startup script to run both processes
 RUN echo '#!/bin/bash\n\
