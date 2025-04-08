@@ -546,6 +546,7 @@ def export_docs_from_file(
         # Sử dụng Template.docx từ thư mục temp trong dự án
         try:
             template_path = os.path.join(BASE_DIR,"temp", "Template.docx")
+
             if not os.path.exists(template_path):
                 raise HTTPException(
                     status_code=404, detail=f"Default template file not found: {template_path} at {traceback.format_exc()}")
