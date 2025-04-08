@@ -267,6 +267,7 @@ def process_excel_file_no_upload(id: int):
     """
     Xử lý file Excel và trả về đường dẫn file đã xử lý
     """
+
     template_file_path = os.path.join(
         BASE_DIR,
         "temp",
@@ -278,6 +279,7 @@ def process_excel_file_no_upload(id: int):
     if not proposal:
         raise HTTPException(
             status_code=404, detail="Không tìm thấy hồ sơ thầu với ID này"
+
         )
 
     personal_requirement_sql = f"""
