@@ -31,6 +31,8 @@ class EnvSettings(BaseSettings, case_sensitive=True):
     MINIO_BUCKET: str = ""
     MAX_RETRIES: int = 3
     RETRY_DELAY: int = 30
+    GMAIL_ADDRESS: str = ""
+    GMAIL_APP_PASSWORD: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", extra="allow")
 
