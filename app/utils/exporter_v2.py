@@ -263,7 +263,7 @@ def fill_data_with_compliance(sheet, header_position, data: List[Dict[str, Any]]
             sheet.cell(row=row_num, column=col).border = thin_border
 
 
-def process_excel_file_no_upload(id: int):
+def process_excel_file_no_upload(id: int, output_filename: str):
     """
     Xử lý file Excel và trả về đường dẫn file đã xử lý
     """
@@ -310,7 +310,8 @@ def process_excel_file_no_upload(id: int):
 
     # Tạo thư mục tạm để lưu file nếu chưa tồn tại
     timestamp = datetime.now().strftime("%Y_%m_%d_%S_%M_%H")
-    with tempfile.NamedTemporaryFile(suffix=".xlsx", prefix=f"Checklist_HSMT_{timestamp}", delete=False) as temp_file:
+    # with tempfile.NamedTemporaryFile(suffix=".xlsx", prefix=f"Checklist_HSMT_{timestamp}", delete=False) as temp_file:
+    with tempfile.NamedTemporaryFile(suffix=".xlsx", prefix=output_filename, delete=False) as temp_file:
         temp_file_path = temp_file.name
         # Sao chép file template vào file tạm
         shutil.copyfile(template_file_path, temp_file_path)
