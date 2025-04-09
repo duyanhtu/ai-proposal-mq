@@ -90,6 +90,23 @@ def consume_callback(ch, method, properties, body):
         print(f" [x] Received: {message}")
         # 1. Query trong bảng email contents theo hs_id
         hs_id = message["id"]
+        query = """ 
+            SELECT ec.id
+            FROM email_contents ec
+            WHERE 
+                hs_id =%s
+                and type='HSMT'
+                and NOT EXISTS (
+                    SELECT 1
+                    FROM document_detail dd
+                    WHERE dd.email_content_id = ec.id
+                );
+        """
+        param = (hs_id, )
+        result_check_linkmd = postgre.selectSQL(query, param)
+        if not result_check_linkmd:
+            print(" [!] File hồ sơ mời thầu đã tồn tại")
+            return
         files = message["files"]
         if not files:
             print(" [!] Không tìm thấy file nào!")

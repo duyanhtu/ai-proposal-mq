@@ -60,15 +60,10 @@ class GenerateExcelReplyEmailNodeV1:
             response_docx = json.loads(response_docx.body)
 
         # Tạo danh sách file hợp lệ
-        # temp_file_path = [
-        #     response_excel.path if response_excel else None,
-        #     response_docx["file_path"] if response_docx else None,
-        #     response_md_content["file_path"] if response_md_content else None,
-        # ]
         temp_file_path = [
-            response_excel.path,
-            response_docx["file_path"],
-            response_md_content["file_path"],
+            response_excel.path if response_excel else None,
+            response_docx["file_path"] if response_docx else None,
+            response_md_content["file_path"] if response_md_content else None,
         ]
         # Lọc bỏ None
         temp_file_path = [path for path in temp_file_path if path]
