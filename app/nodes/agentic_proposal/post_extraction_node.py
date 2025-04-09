@@ -100,9 +100,9 @@ class PostExtractionMDNodeV1:
 
         proposal_id = pgdb_proposal.insert_proposal_v1_0_3(proposal_info)
         print("inserted proposal overivew")
-        sql = "UPDATE proposal SET email_content_id = %s WHERE id=%s"
-        params = (state["email_content_id"], proposal_id)
-        executeSQL(sql, params)
+        # sql = "UPDATE proposal SET email_content_id = %s WHERE id=%s"
+        # params = (state["email_content_id"], proposal_id)
+        # executeSQL(sql, params)
         # 2. insert into finance_requirement table
         # list of finance_requirement to be inserted
         finance_requirements = [
