@@ -84,7 +84,7 @@ class GenerateExcelReplyEmailNodeV1:
         response = send_email_with_attachments(
             email_address=EnvSettings().GMAIL_ADDRESS,
             app_password=EnvSettings().GMAIL_APP_PASSWORD,
-            subject="Kết quả phân tích hồ sơ",
+            subject=f"Kết quả phân tích hồ sơ ({state["hs_id"]})",
             body="""
                 Kính gửi anh chị,
                 Trong file đính kèm là kết quả của hệ thống AI xử lý bóc tách yêu cầu tự động.
