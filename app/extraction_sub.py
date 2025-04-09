@@ -73,7 +73,9 @@ def consume_callback(ch, method, properties, body):
         print(f"Done with {hs_id}")
         return res
     except json.JSONDecodeError:
-        print(f" [!] Error: Invalid JSON format: {body}")
+        print(f" [!] Error: Invalid JSON format: {body}", traceback.format_exc())
+    except Exception:
+        print(f" [!] Error: Something was wrong: {body}", traceback.format_exc())
 
 def extraction_sub():
     """
