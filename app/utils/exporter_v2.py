@@ -386,7 +386,7 @@ def process_excel_file_no_upload(id: int, output_filename: str):
             ) from e
 
 
-def process_excel_file_no_upload_with_compliance(id: int):
+def process_excel_file_no_upload_with_compliance(id: int, output_filename: str):
     """
     Xử lý file Excel và trả về đường dẫn file đã xử lý
     """
@@ -430,8 +430,7 @@ def process_excel_file_no_upload_with_compliance(id: int):
         )
 
     # Tạo thư mục tạm để lưu file nếu chưa tồn tại
-    timestamp = datetime.now().strftime("%Y_%m_%d_%S_%M_%H")
-    with tempfile.NamedTemporaryFile(suffix=".xlsx", prefix=f"Checklist_HSMT_{timestamp}", delete=False) as temp_file:
+    with tempfile.NamedTemporaryFile(suffix=".xlsx", prefix=output_filename, delete=False) as temp_file:
         temp_file_path = temp_file.name
         # Sao chép file template vào file tạm
         shutil.copyfile(template_file_path, temp_file_path)
@@ -483,7 +482,7 @@ def process_excel_file_no_upload_with_compliance(id: int):
             for header in header_positions:
                 data = data_map[header["data_key"]]
                 if data:
-                    fill_data(sheet, header, data)
+                    fill_data_with_compliance(sheet, header, data)
 
             # Lưu lại file Excel đã xử lý
             workbook.save(temp_file_path)
