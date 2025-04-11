@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 import sys, os
 import traceback
+from app.config import langfuse_handler
 from app.config.env import EnvSettings
 from app.mq.rabbit_mq import RabbitMQClient
 from app.utils.minio import download_from_minio
@@ -68,10 +69,17 @@ def consume_callback(ch, method, properties, body):
         }
         try:
             res = proposal_md_team_graph_v1_0_2_instance.invoke(
-                inputs
+                inputs,
+                config={
+                    "callbacks": [langfuse_handler.env_ai_proposal()],
+                    "metadata": {
+                        "langfuse_user_id":f"extraction_sub_{hs_id}@hpt.vn",
+                    },
+                },
             )
             next_queue = "sql_answer_queue"
             next_message = {
+                "hs_id": hs_id,
                 "proposal_id": res["proposal_id"],
                 "email_content_id": res["email_content_id"],
                 "is_exist_contnet_markdown_hskt": res["is_exist_contnet_markdown_hskt"],

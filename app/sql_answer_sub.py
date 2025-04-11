@@ -40,6 +40,7 @@ def consume_callback(ch, method, properties, body):
     try:
         message = json.loads(body.decode('utf-8'))  # Giải mã JSON
         print(f" [x] Received: {message}\n")
+        hs_id=message["hs_id"]
         proposal_id=message["proposal_id"]
         email_content_id=message["email_content_id"]
         is_exist_contnet_markdown_hskt =message["is_exist_contnet_markdown_hskt"]
@@ -100,7 +101,7 @@ def consume_callback(ch, method, properties, body):
                 config={
                     "callbacks": [langfuse_handler.env_ai_proposal()],
                     "metadata": {
-                        "langfuse_user_id": "send@hpt.vn_sql_v1_0_1",
+                        "langfuse_user_id": f"sql_answer_sub_{hs_id}@hpt.vn"
                     },
                 },
             )
