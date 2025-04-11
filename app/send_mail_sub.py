@@ -66,7 +66,7 @@ def consume_callback(ch, method, properties, body):
             postgre.executeSQL(sql, params)
 
             # Update email contents
-            sql12 = "UPDATE email_contents SET status='DA_XU_LY' WHERE hs_id=%s"
+            sql12 = "UPDATE email_contents SET status='DA_XU_LY', end_process_date = now() WHERE hs_id=%s"
             params12 = (email_sql[0]["hs_id"],)
             postgre.executeSQL(sql12, params12)
         # =====================================
