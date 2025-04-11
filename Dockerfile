@@ -29,6 +29,8 @@ COPY ./temp /app/temp
 RUN echo '#!/bin/bash\n\
 python main.py &\n\
 python main1.py &\n\
+python main_sql_answer.py &\n\
+python main_send_mail.py &\n\
 # Keep the container running\n\
 tail -f /dev/null\n'\
 > /app/start.sh && chmod +x /app/start.sh
