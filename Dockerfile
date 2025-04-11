@@ -21,6 +21,8 @@ COPY ./app /app/app
 COPY .env /app/.env
 COPY ./main.py /app/main.py
 COPY ./main1.py /app/main1.py
+COPY ./main_sql_answer.py /app/main_sql_answer.py
+COPY ./main_send_mail.py /app/main_send_mail.py
 COPY ./credentials.json /app/credentials.json
 COPY ./token.pickle /app/token.pickle
 COPY ./temp /app/temp
