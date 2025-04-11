@@ -65,10 +65,10 @@ class GenerateExcelAndDocxNodeV1:
             response_docx["file_path"] if response_docx else None,
             response_md_content["file_path"] if response_md_content else None,
         ]
-        # Lọc bỏ None
-        temp_file_path = [
-            path.replace("\\", "/") for path in temp_file_path
-            if path and "\\" in str(path)
-        ]
+        # # Lọc bỏ None
+        # temp_file_path = [
+        #     path.replace("\\", "/") for path in temp_file_path
+        #     if path and "\\" in str(path)
+        # ]
         print("[GENERATE_EXCEL_AND_DOCX_NODE_V1] RESULT: ", temp_file_path)
         return {"temp_file_path": temp_file_path}
