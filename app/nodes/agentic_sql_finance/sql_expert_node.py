@@ -180,7 +180,7 @@ SELECT
 FROM 
     latest_financial_year lfy;
 """
-sqlSample = """
+sqlSample1 = """
 requirements: "Đã thực hiện nghĩa vụ kê khai thuế của năm tài chính gần nhất so với thời điểm đóng thầu."
 sql:
 WITH latest_financial_year AS (
@@ -215,7 +215,7 @@ SELECT
 FROM 
     latest_financial_year lfy;
 """
-sqlSample = """
+sqlSample2 = """
 requirements: "Đã thực hiện nghĩa nộp thuế của năm tài chính gần nhất so với thời điểm đóng thầu."
 sql:
 WITH latest_financial_year AS (
@@ -250,9 +250,8 @@ SELECT
 FROM 
     latest_financial_year lfy;
 """
-
-sqlSample2 = """
-requirements: "Doanh thu bình quân hằng năm (không bao gồm thuế VAT) của 3 năm tài chính gần nhất so với thời điểm đóng thầu của nhà thầu có giá trị tối thiểu là 10.906.916.100(9) VND."
+sqlSample3 = """
+requirements: "Doanh thu bình quân hằng năm (không bao gồm thuế VAT) của 3 năm tài chính gần nhất so với thời điểm đóng thầu của nhà thầu có giá trị tối thiểu là 10.906.916.100 VND."
 sql:
 WITH latest_results AS (
     SELECT 
@@ -277,9 +276,9 @@ FROM
     latest_results lr,
     avg_result ar
 WHERE 
-    ar.avg_revenue >= 17385000000;
+    ar.avg_revenue >= 10906916100;
 """
-sqlSample3 = """
+sqlSample4 = """
 requirements: "Giá trị tài sản ròng của nhà thầu trong năm tài chính gần nhất so với thời điểm đóng thầu phải dương. (Giá trị tài sản ròng = Tổng tài sản - Tổng nợ)"
 sql:
 SELECT id, net_asset_value,financial_report_url
@@ -305,8 +304,10 @@ Description for schema:
 
 Sample:
 {sqlSample}
+{sqlSample1}
 {sqlSample2}
 {sqlSample3}
+{sqlSample4}
 
 Your task is to use the provided schema, and produce the SQL query needed to answer user question. Collaborate with SQL Executor for feedback and review, ensuring that your SQL solutions is correct and follow best practices in database design and query optimization to enhance performance and reliability.
 The output should be a an optimized SQL query. Ensure that your output only contains SQL query, nothing else.
@@ -337,14 +338,21 @@ Description for schema:
 
 Sample:
 {sqlSample}
+{sqlSample1}
 {sqlSample2}
 {sqlSample3}
+{sqlSample4}
 
 Your task is to use the provided schema, requirements, and descriptions to create the SQL query needed to answer the user's request.
 Work with SQL Executor for feedback and review, ensuring that your SQL solutions are correct and follow best practices in database design and query optimization for performance and reliability.
 The output should be an optimized SQL query.KHÔNG lấy dữ liệu trong() ví dụ (7),(6) khi đọc mô tả và yêu cầu,
 Đối với các số tiền phải giữ nguyên đúng số và số lượng các số trong số tiền cần lấy khi cho vào câu lệnh sql.
 ví dụ: 2.808.300.000.000 VND thì bóc thành 2808300000000
+         280.830.000.000 VND thì bóc thành  280830000000
+          28.083.000.000 VND thì bóc thành   28083000000
+           2.808.300.000 VND thì bóc thành    2808300000
+             280.830.000 VND thì bóc thành     280830000
+
 Make sure your output contains only the SQL query, nothing else.
 QUAN TRỌNG - HƯỚNG DẪN SO SÁNH SỐ HỌC:
     1. Khi so sánh các giá trị tiền tệ, hãy chuyển tất cả giá trị về cùng một đơn vị (VND).

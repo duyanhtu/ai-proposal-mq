@@ -199,6 +199,7 @@ def fill_data_with_compliance(sheet, header_position, data: List[Dict[str, Any]]
 
         # ADD LINK AND COMPLIANCE CONFIRMATION
         link = f"{str(item.get("link", "") or "")}"
+        reason = f"{str(item.get("reason", "") or "")}"
         compliance_confirmation = f"{str(item.get("compliance_confirmation", "") or "")}"
 
         # CELL TIME
@@ -208,11 +209,17 @@ def fill_data_with_compliance(sheet, header_position, data: List[Dict[str, Any]]
         cell_17.alignment = center_alignment
         cell_17.font = Font(bold=True)
 
-        # COLUMN 8 BECAUSE OF link
+        # COLUMN 8 BECAUSE OF reason
         cell_18 = sheet.cell(row=row_num, column=8)
-        cell_18.value = f"{link}"
+        cell_18.value = f"{reason}"
         cell_18.alignment = center_alignment
         cell_18.font = Font(bold=True)
+        
+        # COLUMN 9 BECAUSE OF link
+        cell_19 = sheet.cell(row=row_num, column=9)
+        cell_19.value = f"{link}"
+        cell_19.alignment = center_alignment
+        cell_19.font = Font(bold=True)
 
         # END OF ADD LINK AND COMPLIANCE CONFIRMATION
 

@@ -81,7 +81,7 @@ summary_system_prompt = """
             "finance_requirement_id": id,
             "sql_answer":"Nêu chi tiết căn cứ lý luận và câu sql cho yêu cầu sql generator",
             "compliance_confirmation": "Đáp ứng hoặc Không đáp ứng",
-            "reason": "Giải thích tại sao đáp ứng hoặc không đáp ứng, kèm theo so sánh số học chính xác",
+            "reason": "Nêu chi tiết căn cứ lý luận chỉ rõ các điều kiện khi so sánh để đưa ra kết luận đáp ứng hay không đáp ứng.Chỉ rõ năm tài chính trong yêu cầu là năm nào ",
             "link": "Đường dẫn tham khảo",
         }}
 """
