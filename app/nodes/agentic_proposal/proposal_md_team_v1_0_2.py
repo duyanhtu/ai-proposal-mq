@@ -8,14 +8,13 @@ from langgraph.graph import StateGraph, START, END
 from app.nodes.agentic_proposal.classify_document_pdf import ClassifyDocumentPdfNodeV1
 from app.nodes.states.state_proposal_v1 import StateProposalV1
 
-from app.nodes.agentic_proposal.chapter_content_node import ChapterContentMDNodeV1
 from app.nodes.agentic_proposal.extraction_overview_node import ExtractionOverviewMDNodeV1
 from app.nodes.agentic_proposal.extraction_hr_node import ExtractionHRMDNodeV1m1p0
 from app.nodes.agentic_proposal.extraction_finance_node import ExtractionFinanceMDNodeV1m0p1
 from app.nodes.agentic_proposal.extraction_experience_node import ExtractionExperienceMDNodeV1m0p0
 from app.nodes.agentic_proposal.extraction_technology_node import ExtractionTechnologyMDNodeV1m0p0
 from app.nodes.agentic_proposal.post_extraction_node import PostExtractionMDNodeV1
-from app.nodes.agentic_proposal.generate_excel_reply_email import GenerateExcelReplyEmailNodeV1
+from app.nodes.agentic_proposal.generate_excel_and_docx import GenerateExcelAndDocxNodeV1
 from app.nodes.agentic_proposal.prepare_data_document import PrepareDataDocumentNodeV1
 from app.nodes.agentic_proposal.extraction_notice_bid_node import ExtractionNoticeBidMDNodeV1m0p0
 from app.nodes.agentic_proposal.summary_hsmt_node import SummaryHSMTNodeV1m0p0
@@ -65,10 +64,10 @@ def proposal_md_team_graph_v1_0_2():
     post_extraction_md_node_v1 = PostExtractionMDNodeV1(
         name="PostExtractionMDNodeV1",
     )
-    # 13. Generate Excel Reply Email
-    generate_excel_reply_email_node_v1= GenerateExcelReplyEmailNodeV1(
-        name="GenerateExcelReplyEmailNodeV1"
-    )
+    # # 13. Generate Excel Reply Email
+    # generate_excel_and_docx_node_v1= GenerateExcelAndDocxNodeV1(
+    #     name="GenerateExcelAndDocxNodeV1"
+    # )
     #
     # End Define Node
     #
@@ -99,8 +98,8 @@ def proposal_md_team_graph_v1_0_2():
     builder.add_node(summary_hsmt_node_v1.name, summary_hsmt_node_v1)
     # 12. Post-Extraction MD
     builder.add_node(post_extraction_md_node_v1.name, post_extraction_md_node_v1)
-    # 13. Generate Excel Reply Email
-    builder.add_node(generate_excel_reply_email_node_v1.name, generate_excel_reply_email_node_v1)
+    # # 13. Generate Excel And Docx
+    # builder.add_node(generate_excel_and_docx_node_v1.name, generate_excel_and_docx_node_v1)
     # ------------
     # End Add Node
     #
@@ -149,11 +148,11 @@ def proposal_md_team_graph_v1_0_2():
     # from Summary HSMT to Extraction Technology MD
     builder.add_edge(summary_hsmt_node_v1.name, post_extraction_md_node_v1.name)
     # 12-> 13
-    # from Post-Extraction to Generate Excel Reply Email
-    builder.add_edge(post_extraction_md_node_v1.name, generate_excel_reply_email_node_v1.name)
-    # 13-> END
-    # from Generate Excel Reply Email to END
-    builder.add_edge(generate_excel_reply_email_node_v1.name, END)
+    # from Post-Extraction to Generate Excel And Docx
+    builder.add_edge(post_extraction_md_node_v1.name, END)
+    # # 13-> END
+    # # from Generate Excel And Docx to END
+    # builder.add_edge(generate_excel_and_docx_node_v1.name, END)
     # Compile graph
     #
     

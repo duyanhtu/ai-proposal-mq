@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 import sys, os
 import traceback
+from app.config import langfuse_handler
 from app.config.env import EnvSettings
 from app.mq.rabbit_mq import RabbitMQClient
 from app.utils.minio import download_from_minio
@@ -66,10 +67,30 @@ def consume_callback(ch, method, properties, body):
             "hs_id": hs_id,
             "document_file_md": message["files"]
         }
-        res = proposal_md_team_graph_v1_0_2_instance.invoke(
-            inputs
-        )
-
+        try:
+            res = proposal_md_team_graph_v1_0_2_instance.invoke(
+                inputs,
+                config={
+                    "callbacks": [langfuse_handler.env_ai_proposal()],
+                    "metadata": {
+                        "langfuse_user_id":f"extraction_sub_{hs_id}@hpt.vn",
+                    },
+                },
+            )
+            next_queue = "sql_answer_queue"
+            next_message = {
+                "hs_id": hs_id,
+                "proposal_id": res["proposal_id"],
+                "email_content_id": res["email_content_id"],
+                "is_exist_contnet_markdown_hskt": res["is_exist_contnet_markdown_hskt"],
+                "is_exist_contnet_markdown_tbmt": res["is_exist_contnet_markdown_tbmt"],
+                "is_exist_contnet_markdown_hsmt": res["is_exist_contnet_markdown_hsmt"],
+            }
+            rabbit_mq.publish(queue=next_queue, message=next_message)
+        except KeyError as ke:
+            print(f" [!] KeyError: Missing 'proposal_id' in response: {ke}", traceback.format_exc())
+        except Exception as e:
+            print(f" [!] Unexpected error during invoke: {e}", traceback.format_exc())
         print(f"Done with {hs_id}")
         return res
     except json.JSONDecodeError:
