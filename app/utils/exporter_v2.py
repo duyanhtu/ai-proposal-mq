@@ -482,7 +482,7 @@ def process_excel_file_no_upload_with_compliance(id: int, output_filename: str):
             for header in header_positions:
                 data = data_map[header["data_key"]]
                 if data:
-                    fill_data(sheet, header, data)
+                    fill_data_with_compliance(sheet, header, data)
 
             # Lưu lại file Excel đã xử lý
             workbook.save(temp_file_path)
