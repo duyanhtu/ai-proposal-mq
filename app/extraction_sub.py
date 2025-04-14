@@ -21,7 +21,8 @@ RABBIT_MQ_HOST = EnvSettings().RABBIT_MQ_HOST
 RABBIT_MQ_PORT = EnvSettings().RABBIT_MQ_PORT
 RABBIT_MQ_USER = EnvSettings().RABBIT_MQ_USER
 RABBIT_MQ_PASS = EnvSettings().RABBIT_MQ_PASS
-RABBIT_MQ_ENV = EnvSettings().RABBIT_MQ_ENV
+RABBIT_MQ_EXTRACTION_QUEUE=  EnvSettings().RABBIT_MQ_EXTRACTION_QUEUE
+RABBIT_MQ_SQL_ANSWER_QUEUE=  EnvSettings().RABBIT_MQ_SQL_ANSWER_QUEUE
 # Khởi tạo RabbitMQClient dùng chung
 rabbit_mq = RabbitMQClient(
     host=RABBIT_MQ_HOST,
@@ -77,7 +78,7 @@ def consume_callback(ch, method, properties, body):
                     },
                 },
             )
-            next_queue = f"sql_answer_queue_{RABBIT_MQ_ENV}"
+            next_queue = RABBIT_MQ_SQL_ANSWER_QUEUE
             next_message = {
                 "hs_id": hs_id,
                 "proposal_id": res["proposal_id"],
@@ -102,6 +103,6 @@ def extraction_sub():
     """
         markdown_sub
     """
-    queue = f"extraction_queue_{RABBIT_MQ_ENV}"
+    queue = RABBIT_MQ_EXTRACTION_QUEUE
     print(" [*] Waiting for messages. To exit press CTRL+C")
     rabbit_mq.start_consumer(queue, consume_callback)

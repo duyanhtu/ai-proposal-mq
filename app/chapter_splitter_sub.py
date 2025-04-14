@@ -22,7 +22,8 @@ RABBIT_MQ_HOST = EnvSettings().RABBIT_MQ_HOST
 RABBIT_MQ_PORT = EnvSettings().RABBIT_MQ_PORT
 RABBIT_MQ_USER = EnvSettings().RABBIT_MQ_USER
 RABBIT_MQ_PASS = EnvSettings().RABBIT_MQ_PASS
-RABBIT_MQ_ENV = EnvSettings().RABBIT_MQ_ENV
+RABBIT_MQ_CHPATER_SPLITER_QUEUE = EnvSettings().RABBIT_MQ_CHPATER_SPLITER_QUEUE
+RABBIT_MQ_MARKDOWN_QUEUE = EnvSettings().RABBIT_MQ_MARKDOWN_QUEUE
 # Khởi tạo RabbitMQClient dùng chung
 rabbit_mq = RabbitMQClient(
     host=RABBIT_MQ_HOST,
@@ -175,7 +176,7 @@ def consume_callback(ch, method, properties, body):
             {k: v for k, v in file.items() if k != "file_type"} for file in files_object
         ]
         if files_object:
-            next_queue = f"markdown_queue_{RABBIT_MQ_ENV}"
+            next_queue = RABBIT_MQ_MARKDOWN_QUEUE
             next_message = {"id": hs_id, "files": files_object}
             rabbit_mq.publish(queue=next_queue, message=next_message)
             print(f" [➡] Forwarded to {next_queue}: {next_message}")
@@ -188,7 +189,7 @@ def consume_callback(ch, method, properties, body):
 
 def chapter_splitter_sub():
     """Lắng nghe queue 'chapter_splitter_queue' để xử lý tách chương."""
-    queue = f"chapter_splitter_queue_{RABBIT_MQ_ENV}"
+    queue = RABBIT_MQ_CHPATER_SPLITER_QUEUE
     print(" [*] Waiting for messages. To exit press CTRL+C")
     rabbit_mq.start_consumer(queue, consume_callback)
 
