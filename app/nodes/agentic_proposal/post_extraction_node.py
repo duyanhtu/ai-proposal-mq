@@ -136,8 +136,9 @@ class PostExtractionMDNodeV1:
         print("inserted experience requirement")
 
         # 5. insert technology
-        insert_technical(state["result_extraction_technology"], proposal_id)
-        print("inserted technology requirement")
+        if len(state["result_extraction_technology"]) > 0:
+            insert_technical(state["result_extraction_technology"], proposal_id)
+            print("inserted technology requirement")
 
         print("proposal_id: ", proposal_id)
         finish_time = time.perf_counter()

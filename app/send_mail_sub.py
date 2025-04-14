@@ -20,6 +20,7 @@ RABBIT_MQ_HOST = EnvSettings().RABBIT_MQ_HOST
 RABBIT_MQ_PORT = EnvSettings().RABBIT_MQ_PORT
 RABBIT_MQ_USER = EnvSettings().RABBIT_MQ_USER
 RABBIT_MQ_PASS = EnvSettings().RABBIT_MQ_PASS
+RABBIT_MQ_SEND_MAIL_QUEUE=  EnvSettings().RABBIT_MQ_SEND_MAIL_QUEUE
 
 # Khởi tạo RabbitMQClient dùng chung
 rabbit_mq = RabbitMQClient(
@@ -85,8 +86,7 @@ def send_mail_sub():
     """
         send_mail_queue
     """
-    queue = "send_mail_queue"
-    print(" [*] Waiting for messages. To exit press CTRL+C")
+    queue = RABBIT_MQ_SEND_MAIL_QUEUE
     rabbit_mq.start_consumer(queue, consume_callback)
 
 
