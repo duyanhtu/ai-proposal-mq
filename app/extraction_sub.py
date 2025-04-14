@@ -104,5 +104,4 @@ def extraction_sub():
         markdown_sub
     """
     queue = RABBIT_MQ_EXTRACTION_QUEUE
-    print(f" [*] Waiting for messages from {queue}. To exit press CTRL+C")
     rabbit_mq.start_consumer(queue, consume_callback)
