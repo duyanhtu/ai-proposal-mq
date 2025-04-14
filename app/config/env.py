@@ -23,6 +23,7 @@ class EnvSettings(BaseSettings, case_sensitive=True):
     RABBIT_MQ_PORT: str = ""
     RABBIT_MQ_USER: str = ""
     RABBIT_MQ_PASS: str = ""
+    RABBIT_MQ_ENV: str = ""
     MINIO_API_ENDPOINT: str = ""
     MINIO_CONSOLE_ENDPOINT: str = ""
     MINIO_ACCESS_KEY: str = ""

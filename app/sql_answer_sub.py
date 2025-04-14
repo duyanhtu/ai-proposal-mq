@@ -19,6 +19,7 @@ RABBIT_MQ_HOST = EnvSettings().RABBIT_MQ_HOST
 RABBIT_MQ_PORT = EnvSettings().RABBIT_MQ_PORT
 RABBIT_MQ_USER = EnvSettings().RABBIT_MQ_USER
 RABBIT_MQ_PASS = EnvSettings().RABBIT_MQ_PASS
+RABBIT_MQ_ENV = EnvSettings().RABBIT_MQ_ENV
 
 # Khởi tạo RabbitMQClient dùng chung
 rabbit_mq = RabbitMQClient(
@@ -115,7 +116,7 @@ def consume_callback(ch, method, properties, body):
         email_sql = postgre.selectSQL(sql, params)
         if not email_sql:
             return 
-        next_queue = "send_mail_queue"
+        next_queue = f"send_mail_queue_{RABBIT_MQ_ENV}"
         next_message = {
             "proposal_id": proposal_id,
             "email_content_id": email_content_id,
@@ -136,6 +137,6 @@ def sql_answer_sub():
     """
         sql_answer_queue
     """
-    queue = "sql_answer_queue"
+    queue = f"sql_answer_queue_{RABBIT_MQ_ENV}"
     print(" [*] Waiting for messages. To exit press CTRL+C")
     rabbit_mq.start_consumer(queue, consume_callback)
