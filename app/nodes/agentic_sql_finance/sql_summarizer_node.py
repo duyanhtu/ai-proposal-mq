@@ -213,6 +213,13 @@ class SQLSummarizerNodeV1m0p1:
             {"role": "system", "content": self.prompt},
         ] + state["messages"]
         result = self.llm.with_structured_output(None, method="json_mode").invoke(messages)
+        # Normalize values
+        values = result.get("values", [])
+        if isinstance(values, dict):
+            values = [values]
+        elif not isinstance(values, list):
+            values = []
+        result["values"] = values
         for item in result["values"]:
             sql_update = """
                 UPDATE finance_requirement 
