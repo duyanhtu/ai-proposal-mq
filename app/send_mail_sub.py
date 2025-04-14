@@ -87,7 +87,7 @@ def send_mail_sub():
         send_mail_queue
     """
     queue = RABBIT_MQ_SEND_MAIL_QUEUE
-    print(" [*] Waiting for messages. To exit press CTRL+C")
+    print(f" [*] Waiting for messages from {queue}. To exit press CTRL+C")
     rabbit_mq.start_consumer(queue, consume_callback)
 
 

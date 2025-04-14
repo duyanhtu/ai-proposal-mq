@@ -139,5 +139,5 @@ def sql_answer_sub():
         sql_answer_queue
     """
     queue = RABBIT_MQ_SQL_ANSWER_QUEUE
-    print(" [*] Waiting for messages. To exit press CTRL+C")
+    print(f" [*] Waiting for messages from {queue}. To exit press CTRL+C")
     rabbit_mq.start_consumer(queue, consume_callback)

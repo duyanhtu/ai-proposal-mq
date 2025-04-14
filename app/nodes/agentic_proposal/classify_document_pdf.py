@@ -37,7 +37,7 @@ class ClassifyDocumentPdfNodeV1:
 
         # Cập nhật trạng thái DB -> 'DANG_XU_LY'
         executeSQL(
-            f"UPDATE email_contents SET status='DANG_XU_LY' WHERE hs_id = '{hs_id}'")
+            f"UPDATE email_contents SET status='DANG_XU_LY' WHERE hs_id = '{hs_id}' AND type <> 'unknown'")
         return {
             "is_exist_contnet_markdown_tbmt": is_exist_content_markdown_tbmt,
             "is_exist_contnet_markdown_hskt": is_exist_content_markdown_hskt,
