@@ -190,7 +190,7 @@ def consume_callback(ch, method, properties, body):
 def chapter_splitter_sub():
     """Lắng nghe queue 'chapter_splitter_queue' để xử lý tách chương."""
     queue = RABBIT_MQ_CHPATER_SPLITER_QUEUE
-    print(" [*] Waiting for messages. To exit press CTRL+C")
+    print(f" [*] Waiting for messages from {queue}. To exit press CTRL+C")
     rabbit_mq.start_consumer(queue, consume_callback)
 
 
