@@ -4,9 +4,10 @@ FROM python:3.12
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies required for Python packages
+# Install system dependencies and supervisord
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    supervisor \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -27,20 +28,41 @@ COPY ./credentials.json /app/credentials.json
 COPY ./token.pickle /app/token.pickle
 COPY ./temp /app/temp
 
-# Create a startup script to run both processes
-RUN echo '#!/bin/bash\n\
-python main.py &\n\
-python main1.py &\n\
-python main_sql_answer.py &\n\
-python main_send_mail.py &\n\
-# Keep the container running\n\
-tail -f /dev/null\n'\
-> /app/start.sh && chmod +x /app/start.sh
+# Set up supervisord configuration
+RUN echo '[supervisord]\n\
+nodaemon=true\n\
+logfile=/var/log/supervisord.log\n\
+logfile_maxbytes=50MB\n\
+logfile_backups=10\n\
+\n\
+[program:main]\n\
+command=python /app/main.py\n\
+stdout_logfile=/var/log/main.log\n\
+stderr_logfile=/var/log/main_error.log\n\
+autorestart=true\n\
+startretries=10\n\
+\n\
+[program:main1]\n\
+command=python /app/main1.py\n\
+stdout_logfile=/var/log/main1.log\n\
+stderr_logfile=/var/log/main1_error.log\n\
+autorestart=true\n\
+startretries=10\n\
+\n\
+[program:main_sql_answer]\n\
+command=python /app/main_sql_answer.py\n\
+stdout_logfile=/var/log/main_sql_answer.log\n\
+stderr_logfile=/var/log/main_sql_answer_error.log\n\
+autorestart=true\n\
+startretries=10\n\
+\n\
+[program:main_send_mail]\n\
+command=python /app/main_send_mail.py\n\
+stdout_logfile=/var/log/main_send_mail.log\n\
+stderr_logfile=/var/log/main_send_mail_error.log\n\
+autorestart=true\n\
+startretries=10\n'\
+> /etc/supervisor/conf.d/app.conf
 
-# Set the startup script as the entry point
-CMD ["/bin/bash", "/app/start.sh"]
-
-# Make sure scripts are executable
-#RUN chmod +x run_all.py
-# Default command
-#CMD ["python", "run_all.py"]
+# Set the command to run supervisord
+CMD ["/usr/bin/supervisord"]
