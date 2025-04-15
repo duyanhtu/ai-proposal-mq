@@ -7,7 +7,14 @@ from langchain_community.tools.sql_database.tool import QuerySQLDatabaseTool
 from langchain_core.messages import HumanMessage, ToolMessage
 
 # Your imports
+from app.config.env import EnvSettings
 from app.nodes.states.state_finance import StateSqlFinance
+
+PGDB_HOST=EnvSettings().PGDB_HOST
+PGDB_PORT=EnvSettings().PGDB_PORT
+PGDB_NAME=EnvSettings().PGDB_NAME
+PGDB_USER=EnvSettings().PGDB_USER
+PGDB_PASS=EnvSettings().PGDB_PASS
 
 
 # SQL Executor prompt
@@ -31,7 +38,8 @@ REMEMBER, always use the execute_sql tool!
 @tool
 def execute_sql(sql_query: str):
     """Execute SQL query."""
-    db = SQLDatabase.from_uri("postgresql://postgres:Hpt123456@10.4.18.143:54331/AI_PROPOSAL")
+    uri = f"postgresql://{PGDB_USER}:{PGDB_PASS}@{PGDB_HOST}:{PGDB_PORT}/{PGDB_NAME}"
+    db = SQLDatabase.from_uri(uri)
     execute_query_tool = QuerySQLDatabaseTool(db=db)
     return execute_query_tool.invoke(sql_query)
 
