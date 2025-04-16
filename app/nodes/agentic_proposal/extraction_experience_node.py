@@ -335,27 +335,39 @@ class ExtractionExperienceMDNodeV1m0p0:
             5. Bỏ qua các chỉ mục ví dụ 3.1, 3.2,.... và lấy đúng tên yêu cầu cần lấy.
             6. Nếu không tìm thấy thông tin liên quan đến năng lực và kinh nghiệm bắt buộc của nhà thầu trong hồ sơ mời thầu thì hãy trả về rỗng .
             7. KHÔNG lấy thông tin liên quan đến Thuế và Tài chính.
-            8. "KHÔNG ĐƯỢC PHÉP" lấy ví dụ thành nội dung cần bóc tách. (QUAN TRỌNG)
- 
-            **Ví dụ**
-                "Yêu cầu kinh nghiệm": "Kinh nghiệm thực hiện hợp đồng cung cấp hàng hoá tương tự",
-                "Mô tả": "Nhà thầu đã hoàn thành tối thiểu 01 hợp đồng tương tự với tư cách là nhà thầu chính (độc lập hoặc thành viên liên danh) hoặc nhà thầu phụ trong khoảng thời gian kể từ ngày 01 tháng 01 năm 2021 đến thời điểm đóng thầu. Trong đó hợp đồng tương tự là: Có tính chất tương tự: Cung cấp bản quyền phần mềm microsoft office. Đã hoàn thành có quy mô (giá trị) tối thiểu: 1.310.540.000 VND.",
-                "Tài liệu đính kèm": "Mẫu số 05A",
-
-                "Yêu cầu kinh nghiệm": "Lịch sử không hoàn thành hợp đồng do lỗi của nhà thầu"
-                "Mô tả": "Từ ngày 01 tháng 01 năm 2021 đến thời điểm đóng thầu, nhà thầu không có hợp đồng cung cấp hàng hóa, EPC, EP, PC, chìa khóa trao tay không hoàn thành do lỗi của nhà thầu.",
-                "Tài liệu đính kèm": "Mẫu số 07",
-
-                "Yêu cầu kinh nghiệm": "không thương thảo hợp đồng hoặc có quyết định trúng thầu nhưng không tiến hành hoàn thiện/ký kết hợp đồng"
-                "Mô tả": "Nhà thầu không thương thảo hợp đồng hoặc có quyết định trúng thầu nhưng không tiến hành hoàn thiện/ký kết hợp đồng
-                (Nhà thầu đính kèm bản cam kết) Không có trường hợp nào (100%) tương đương 2,5; ≥ 1 lần (0%) tương đương 0",
-                "Tài liệu đính kèm": "Bản cam kết",
-                
-            Nội dung hồ sơ mời thầu:
-            {content}
+            8. **TUYỆT ĐỐI KHÔNG** lấy nội dung từ các ví dụ được cung cấp đây làm dữ liệu đầu ra. Các ví dụ chỉ nhằm mục đích minh họa cách định dạng và quy tắc trích xuất, và không phải là một phần của hồ sơ mời thầu thực tế.
         """
 
-        chat_prompt_template = ChatPromptTemplate.from_template(prompt_template)
+        chat_prompt_template = ChatPromptTemplate.from_messages(
+            [
+                ("system", prompt_template),
+                (
+                    "user",
+                    """
+                        Ví dụ: 
+                        **Ví dụ minh họa:**
+                            "Yêu cầu kinh nghiệm": "Kinh nghiệm thực hiện hợp đồng cung cấp hàng hoá tương tự",
+                            "Mô tả": "Nhà thầu đã hoàn thành tối thiểu 01 hợp đồng tương tự với tư cách là nhà thầu chính (độc lập hoặc thành viên liên danh) hoặc nhà thầu phụ trong khoảng thời gian kể từ ngày 01 tháng 01 năm 2021 đến thời điểm đóng thầu. Trong đó hợp đồng tương tự là: Có tính chất tương tự: Cung cấp bản quyền phần mềm microsoft office. Đã hoàn thành có quy mô (giá trị) tối thiểu: 1.310.540.000 VND.",
+                            "Tài liệu đính kèm": "Mẫu số 05A",
+
+                            "Yêu cầu kinh nghiệm": "Lịch sử không hoàn thành hợp đồng do lỗi của nhà thầu"
+                            "Mô tả": "Từ ngày 01 tháng 01 năm 2021 đến thời điểm đóng thầu, nhà thầu không có hợp đồng cung cấp hàng hóa, EPC, EP, PC, chìa khóa trao tay không hoàn thành do lỗi của nhà thầu.",
+                            "Tài liệu đính kèm": "Mẫu số 07",
+
+                            "Yêu cầu kinh nghiệm": "Không thương thảo hợp đồng hoặc có quyết định trúng thầu nhưng không tiến hành hoàn thiện/ký kết hợp đồng"
+                            "Mô tả": "Nhà thầu không thương thảo hợp đồng hoặc có quyết định trúng thầu nhưng không tiến hành hoàn thiện/ký kết hợp đồng
+                            (Nhà thầu đính kèm bản cam kết) Không có trường hợp nào (100%) tương đương 2,5; ≥ 1 lần (0%) tương đương 0",
+                            "Tài liệu đính kèm": "Bản cam kết",
+                    """
+                ),
+                ("user",
+                    """
+                        Nội dung hồ sơ mời thầu:
+                            {content}
+                    """
+                 )
+            ]
+        )
 
         prompt = chat_prompt_template.invoke({"content": chapter_content})
 
