@@ -12,7 +12,11 @@ from app.nodes.agentic_proposal.extraction_overview_node import ExtractionOvervi
 from app.nodes.agentic_proposal.extraction_hr_node import ExtractionHRMDNodeV1m1p0
 from app.nodes.agentic_proposal.extraction_finance_node import ExtractionFinanceMDNodeV1m0p1
 from app.nodes.agentic_proposal.extraction_experience_node import ExtractionExperienceMDNodeV1m0p0
-from app.nodes.agentic_proposal.extraction_technology_node import ExtractionTechnologyMDNodeV1m0p0
+from app.nodes.agentic_proposal.extraction_technology_node import ( 
+    ExtractionTechnologyMDNodeV1m0p0, 
+    ExtractionTechnologyNodeV1m0p1,
+    ExtractionTechnologyNodeV1m0p2,
+)
 from app.nodes.agentic_proposal.post_extraction_node import PostExtractionMDNodeV1
 from app.nodes.agentic_proposal.generate_excel_and_docx import GenerateExcelAndDocxNodeV1
 from app.nodes.agentic_proposal.prepare_data_document import PrepareDataDocumentNodeV1
@@ -49,8 +53,8 @@ def proposal_md_team_graph_v1_0_2():
         name="ExtractionExperienceMDNodeV1m0p0",
     )
     # ?. Extraction Technology MD
-    extraction_technology_md_node_v1 = ExtractionTechnologyMDNodeV1m0p0(
-        name="ExtractionTechnologyMDNodeV1m0p0",
+    extraction_technology_md_node_v1 = ExtractionTechnologyNodeV1m0p2(
+        name="ExtractionTechnologyNodeV1m0p2", 
     )
     # ?. Extraction Notice Bid MD
     extraction_notice_bid_md_node_v1 = ExtractionNoticeBidMDNodeV1m0p0(
