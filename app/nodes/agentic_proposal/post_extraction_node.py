@@ -52,13 +52,16 @@ class PostExtractionMDNodeV1:
         start_time = time.perf_counter()
         print(self.name)
         # 1. insert into proposal table
-
+        is_data_extracted_finance = False
         proposal_overview = state.get("result_extraction_overview")
         proposal_notice_bid = state.get("result_extraction_notice_bid", {})
         proposal_summary_hsmt = state.get("summary_hsmt", "")
+        result_extraction_finance = state.get("result_extraction_finance", [])
         # date_object = datetime.strptime(proposal_overview.release_date, "%d/%m/%Y")
         # formatted_date = date_object.strftime("%Y-%m-%d")
-
+        # Kiểm tra xem tài chính sau khi bóc tách có dữ liệu không
+        if len(result_extraction_finance) > 0:
+            is_data_extracted_finance = True
         # Đảm bảo proposal_notice_bid là dict (nếu là list, lấy phần tử đầu tiên)
         if isinstance(proposal_notice_bid, list) and proposal_notice_bid:
             proposal_notice_bid = proposal_notice_bid[0]
@@ -143,4 +146,7 @@ class PostExtractionMDNodeV1:
         print("proposal_id: ", proposal_id)
         finish_time = time.perf_counter()
         print(f"Total time: {finish_time - start_time} s")
-        return {"proposal_id": proposal_id}
+        return {
+            "proposal_id": proposal_id,
+            "is_data_extracted_finance": is_data_extracted_finance
+        }

@@ -6,6 +6,7 @@ from app.nodes.agentic_sql_finance.sql_executor_node import SQLExecutorNodeV1m0p
 from app.nodes.agentic_sql_finance.sql_summarizer_node import SQLSummarizerNodeV1m0p1
 from app.nodes.agentic_sql_finance.sql_supervisor_node import SQLSupervisorNodeV1
 from app.nodes.agentic_sql_finance.generate_excel_and_docx import GenerateExcelAndDocxNodeV1
+from app.nodes.agentic_sql_finance.sql_finance_conditional_node import SQLFinanceConditionalNodeV1
 from app.model_ai import llm
 from app.nodes.states.state_finance import StateSqlFinance
 
@@ -39,6 +40,14 @@ def sql_team_graph_v1_0_1():
         members=members,
         finish_node=sql_summarizer_node.name,
     )
+    # 6. SQL Finance Conditional Node
+    # True -> SQL Supervisor Node
+    # False -> Generate Excel And Docx Node
+    sql_finance_conditional_node = SQLFinanceConditionalNodeV1(
+        name="SQLFinanceConditionalNodeV1",
+        supervisor_node=sql_supervisor_node.name,
+        generate_excel_and_docx_node=generate_excel_and_docx_node.name,
+    )
     #
     # End Define Node
     #
@@ -66,7 +75,8 @@ def sql_team_graph_v1_0_1():
     # Create edge
     #
     # from START to SQL Supervisor
-    builder.add_edge(START, sql_supervisor_node.name)
+    builder.add_conditional_edges(START, sql_finance_conditional_node)
+    # builder.add_edge(START, sql_supervisor_node.name)
     for member in members:
         # from SQL Supervisor to finish node
         builder.add_edge(member, sql_supervisor_node.name)
@@ -82,5 +92,5 @@ def sql_team_graph_v1_0_1():
     graph = builder.compile(debug=False)
     return graph
 
-print("[SQL_TEAM_GRAPH_V1]    BUILDING... ")
+print("[SQL_TEAM_GRAPH_V1_0_1]    BUILDING... ")
 sql_team_graph_v1_0_1_instance = sql_team_graph_v1_0_1()

@@ -385,7 +385,7 @@ class SQLExpertNodeV1:
 
     # Defining __call__ method
     def __call__(self, state: StateSqlFinance):
-        print(f"Executing node: {self.name}")
+        print(self.name)
         
         # Lấy tất cả câu hỏi từ messages (lọc HumanMessage)
         questions = [msg.content for msg in state["messages"] if isinstance(msg, HumanMessage)]

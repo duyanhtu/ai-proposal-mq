@@ -335,7 +335,7 @@ class ExtractionExperienceMDNodeV1m0p0:
             5. Bỏ qua các chỉ mục ví dụ 3.1, 3.2,.... và lấy đúng tên yêu cầu cần lấy.
             6. Nếu không tìm thấy thông tin liên quan đến năng lực và kinh nghiệm bắt buộc của nhà thầu trong hồ sơ mời thầu thì hãy trả về rỗng .
             7. KHÔNG lấy thông tin liên quan đến Thuế và Tài chính.
-            8. Ví dụ chỉ để tham khảo KHÔNG phải là nội dung cần bóc tách.
+            8. "KHÔNG ĐƯỢC PHÉP" lấy ví dụ thành nội dung cần bóc tách. (QUAN TRỌNG)
  
             **Ví dụ**
                 "Yêu cầu kinh nghiệm": "Kinh nghiệm thực hiện hợp đồng cung cấp hàng hoá tương tự",
