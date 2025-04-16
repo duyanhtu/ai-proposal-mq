@@ -54,7 +54,7 @@ class SQLExecutorNodeV1:
         self.prompt = prompt
 
     def __call__(self, state: StateSqlFinance):
-        print(f"Executing node: {self.name}")
+        print(self.name)
         # Extract the last message (assumed to contain SQL queries)
         last_message = state["messages"][-1].content
         try:

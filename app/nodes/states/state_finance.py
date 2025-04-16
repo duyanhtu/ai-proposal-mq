@@ -22,6 +22,7 @@ class StateSqlFinance(MessagesState):
     sql_next: str
     email_content_id: int
     temp_file_path: List[str]
+    is_data_extracted_finance: bool
     is_exist_contnet_markdown_tbmt: bool
     is_exist_contnet_markdown_hskt: bool
     is_exist_contnet_markdown_hsmt: bool

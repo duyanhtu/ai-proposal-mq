@@ -307,7 +307,7 @@ def process_excel_file_no_upload(id: int, output_filename: str):
         "finance_requirement": pgdb.select(finance_requirement_sql),
     }
 
-    print("data_map: ", data_map)
+    # print("data_map: ", data_map)
 
     # Gộp description theo position cho personal_requirement
     if "personal_requirement" in data_map and data_map["personal_requirement"]:

@@ -45,6 +45,7 @@ def consume_callback(ch, method, properties, body):
         hs_id=message["hs_id"]
         proposal_id=message["proposal_id"]
         email_content_id=message["email_content_id"]
+        is_data_extracted_finance= message["is_data_extracted_finance"]
         is_exist_contnet_markdown_hskt =message["is_exist_contnet_markdown_hskt"]
         is_exist_contnet_markdown_tbmt =message["is_exist_contnet_markdown_tbmt"]
         is_exist_contnet_markdown_hsmt =message["is_exist_contnet_markdown_hsmt"]
@@ -57,9 +58,9 @@ def consume_callback(ch, method, properties, body):
             """
         params = (proposal_id,)
         results = postgre.selectSQL(sql, params)
-        if not results:
-            print(f"[X] Error không có thông tin tài chính với {proposal_id}")
-            return
+        # if not results:
+        #     print(f"[X] Error không có thông tin tài chính với {proposal_id}")
+        #     return
         # Finance
         data_finance = [
             f"""
@@ -93,6 +94,7 @@ def consume_callback(ch, method, properties, body):
                 """,
             },
             "email_content_id": email_content_id,
+            "is_data_extracted_finance": is_data_extracted_finance,
             "is_exist_contnet_markdown_hskt":is_exist_contnet_markdown_hskt,
             "is_exist_contnet_markdown_tbmt":is_exist_contnet_markdown_tbmt,
             "is_exist_contnet_markdown_hsmt":is_exist_contnet_markdown_hsmt,

@@ -83,6 +83,7 @@ def consume_callback(ch, method, properties, body):
                 "hs_id": hs_id,
                 "proposal_id": res["proposal_id"],
                 "email_content_id": res["email_content_id"],
+                "is_data_extracted_finance": res["is_data_extracted_finance"],
                 "is_exist_contnet_markdown_hskt": res["is_exist_contnet_markdown_hskt"],
                 "is_exist_contnet_markdown_tbmt": res["is_exist_contnet_markdown_tbmt"],
                 "is_exist_contnet_markdown_hsmt": res["is_exist_contnet_markdown_hsmt"],

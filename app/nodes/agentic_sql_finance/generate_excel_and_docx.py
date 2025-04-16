@@ -27,7 +27,7 @@ class GenerateExcelAndDocxNodeV1:
         text = re.sub(r'\s+', '_', text.strip())
         return text
     def __call__(self, state: StateSqlFinance):
-        print(f"Executing node: {self.name}")
+        print(self.name)
         # Query from database for any pending tasks
         sql = f"SELECT * FROM proposal WHERE status='EXTRACTED' and email_content_id = {state["email_content_id"]}"
         results = selectSQL(sql)
