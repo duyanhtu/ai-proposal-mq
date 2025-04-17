@@ -246,12 +246,11 @@ class ExtractionFinanceMDNodeV1m0p1:
             1. Giữ nguyên dữ liệu gốc
              Yêu cầu là đoạn tóm tắt ngắn gọn.Không lấy "Năng lực tài chính" nói chung mà không có chi tiết yêu cầu.
             2. Mô tả yêu cầu được viết trong 1 đoạn (ngăn cách bằng |   |) thì phải lấy đầy đủ nội dung từ | đến hết |.KHÔNG tách ra thành từng yêu cầu.
-            3. Trích xuất toàn bộ dữ liệu của hàng có yêu cầu được mô tả ở trên.Các nội dung được nối thêm vào trong cột mô tả ở trên.
-            4. Trong yêu cầu nếu có lưu ý trong ngoặc() hãy trích xuất đầy đủ thông tin trong ngoặc.
-            5. Bỏ qua các chỉ mục ví dụ 3.1, 3.2,.... và lấy đúng tên yêu cầu cần lấy.
-            6. Nếu không tìm thấy thông tin liên quan đến tài chính trong hồ sơ mời thầu thì hãy trả về rỗng .
-            7. KHÔNG lấy thông tin liên quan đến hợp đồng tương tự.
-            8. Yêu cầu về tài chính "KHÔNG PHẢI" là các tiêu chuẩn đánh giá về tài chính.
+            3. Trong yêu cầu nếu có lưu ý trong ngoặc() hãy trích xuất đầy đủ thông tin trong ngoặc.
+            4. Bỏ qua các chỉ mục ví dụ 3.1, 3.2,.... và lấy đúng tên yêu cầu cần lấy.
+            5. Nếu không tìm thấy thông tin liên quan đến tài chính trong hồ sơ mời thầu thì hãy trả về rỗng .
+            6. KHÔNG lấy thông tin liên quan đến hợp đồng tương tự.
+            7. Yêu cầu về tài chính "KHÔNG PHẢI" là các tiêu chuẩn đánh giá về tài chính.
             8. **TUYỆT ĐỐI KHÔNG** lấy các tiêu chuẩn đánh giá về tài chính như: Nguồn vốn, Chi phí dự thầu, Giá dự thầu,Giá gói thầu, Tiền thanh toán, Phương pháp đánh giá về giá, Phương pháp giá thấp nhất.
             Nếu trong mô tả có các tài liệu yêu cầu thì không điền vào "tài liệu"
             9. **TUYỆT ĐỐI KHÔNG** lấy nội dung từ các ví dụ được cung cấp đây làm dữ liệu đầu ra. Các ví dụ chỉ nhằm mục đích minh họa cách định dạng và quy tắc trích xuất, và không phải là một phần của hồ sơ mời thầu thực tế.

@@ -1,4 +1,6 @@
 import json
+import sys
+import signal
 import traceback
 import fitz
 from app.config.env import EnvSettings
@@ -114,6 +116,8 @@ def consume_callback(ch, method, properties, body):
             return
         # Tạo mapping {file_path: email_content_id} từ message
         original_file_paths = {file["file_type"]: file["id"] for file in files}
+
+        print(" [x] Original file paths: ", original_file_paths)
         files_object = []
         keyword = "tiêu chuẩn đánh giá"
         for f in files:
@@ -189,6 +193,12 @@ def consume_callback(ch, method, properties, body):
 
 def chapter_splitter_sub():
     """Lắng nghe queue 'chapter_splitter_queue' để xử lý tách chương."""
+    # Define signal handler for graceful shutdown
+    def signal_handler(sig, frame):
+        sys.exit(0)
+ 
+    # Register the signal handler for SIGINT (Ctrl+C)
+    signal.signal(signal.SIGINT, signal_handler)
     queue = RABBIT_MQ_CHPATER_SPLITER_QUEUE
     rabbit_mq.start_consumer(queue, consume_callback)
 
