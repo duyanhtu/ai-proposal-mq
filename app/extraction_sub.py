@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+import signal
 import sys, os
 import traceback
 from app.config import langfuse_handler
@@ -104,5 +105,11 @@ def extraction_sub():
     """
         markdown_sub
     """
+    # Define signal handler for graceful shutdown
+    def signal_handler(sig, frame):
+        sys.exit(0)
+ 
+    # Register the signal handler for SIGINT (Ctrl+C)
+    signal.signal(signal.SIGINT, signal_handler)
     queue = RABBIT_MQ_EXTRACTION_QUEUE
     rabbit_mq.start_consumer(queue, consume_callback)
