@@ -35,14 +35,21 @@ logfile=/var/log/supervisord.log\n\
 logfile_maxbytes=50MB\n\
 logfile_backups=10\n\
 \n\
-[program:main]\n\
+[program:main_classify]\n\
+command=python /app/main_classify.py\n\
+stdout_logfile=/var/log/main_classify.log\n\
+stderr_logfile=/var/log/main_classify_error.log\n\
+autorestart=true\n\
+startretries=10\n\
+\n\
+[program:main_chapter_splitter]\n\
 command=python /app/main_chapter_splitter.py\n\
 stdout_logfile=/var/log/main_chapter_splitter.log\n\
 stderr_logfile=/var/log/main_chapter_splitter_error.log\n\
 autorestart=true\n\
 startretries=10\n\
 \n\
-[program:main1]\n\
+[program:main_extraction_sub]\n\
 command=python /app/main_extraction_sub.py\n\
 stdout_logfile=/var/log/main_extraction_sub.log\n\
 stderr_logfile=/var/log/main_extraction_sub_error.log\n\
