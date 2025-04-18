@@ -1,5 +1,7 @@
 import json
 import os
+import signal
+import sys
 import traceback
 from app.config import langfuse_handler
 from app.config.env import EnvSettings
@@ -45,6 +47,7 @@ def consume_callback(ch, method, properties, body):
         hs_id=message["hs_id"]
         proposal_id=message["proposal_id"]
         email_content_id=message["email_content_id"]
+        is_data_extracted_finance= message["is_data_extracted_finance"]
         is_exist_contnet_markdown_hskt =message["is_exist_contnet_markdown_hskt"]
         is_exist_contnet_markdown_tbmt =message["is_exist_contnet_markdown_tbmt"]
         is_exist_contnet_markdown_hsmt =message["is_exist_contnet_markdown_hsmt"]
@@ -57,9 +60,9 @@ def consume_callback(ch, method, properties, body):
             """
         params = (proposal_id,)
         results = postgre.selectSQL(sql, params)
-        if not results:
-            print(f"[X] Error không có thông tin tài chính với {proposal_id}")
-            return
+        # if not results:
+        #     print(f"[X] Error không có thông tin tài chính với {proposal_id}")
+        #     return
         # Finance
         data_finance = [
             f"""
@@ -93,6 +96,7 @@ def consume_callback(ch, method, properties, body):
                 """,
             },
             "email_content_id": email_content_id,
+            "is_data_extracted_finance": is_data_extracted_finance,
             "is_exist_contnet_markdown_hskt":is_exist_contnet_markdown_hskt,
             "is_exist_contnet_markdown_tbmt":is_exist_contnet_markdown_tbmt,
             "is_exist_contnet_markdown_hsmt":is_exist_contnet_markdown_hsmt,
@@ -107,7 +111,6 @@ def consume_callback(ch, method, properties, body):
                     },
                 },
             )
-            print(res)
             print("[v] Done run graph and inserted finance requirement.")
         except Exception as e:
             print(f" [!] Unexpected error during invoke: {e}", traceback.format_exc())
@@ -116,13 +119,13 @@ def consume_callback(ch, method, properties, body):
         params = (res["email_content_id"],)
         email_sql = postgre.selectSQL(sql, params)
         if not email_sql:
-            return 
+            return
         next_queue = RABBIT_MQ_SEND_MAIL_QUEUE
         next_message = {
             "proposal_id": proposal_id,
             "email_content_id": email_content_id,
             "subject": f"Kết quả phân tích hồ sơ ({email_sql[0].get("hs_id", "")})",
-            "body": "Kính gửi anh chị,\nTrong file đính kèm là kết quả của hệ thống AI xử lý bóc tách yêu cầu tự động.\nVui lòng kiểm tra lại nội dung tài liệu này để đảm bảo tính chính xác của thông tin.",
+            "body": f"Kính gửi anh chị,\nTrong file đính kèm là kết quả của hệ thống AI xử lý bóc tách yêu cầu tự động cho hồ sơ mời thầu: {res.get("proposal_name", "")}.\nVui lòng kiểm tra lại nội dung tài liệu này để đảm bảo tính chính xác của thông tin.",
             "recipient": email_sql[0].get("sender", ""),
             "attachment_paths": res.get("temp_file_path", []),
         }
@@ -138,5 +141,11 @@ def sql_answer_sub():
     """
         sql_answer_queue
     """
+    # Define signal handler for graceful shutdown
+    def signal_handler(sig, frame):
+        sys.exit(0)
+ 
+    # Register the signal handler for SIGINT (Ctrl+C)
+    signal.signal(signal.SIGINT, signal_handler)
     queue = RABBIT_MQ_SQL_ANSWER_QUEUE
     rabbit_mq.start_consumer(queue, consume_callback)

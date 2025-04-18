@@ -1,5 +1,7 @@
 import json
 import os
+import signal
+import sys
 import traceback
 from app.config import langfuse_handler
 from app.config.env import EnvSettings
@@ -70,6 +72,7 @@ def consume_callback(ch, method, properties, body):
             sql12 = "UPDATE email_contents SET status='DA_XU_LY', end_process_date = now() AT TIME ZONE 'UTC' WHERE hs_id=%s"
             params12 = (email_sql[0]["hs_id"],)
             postgre.executeSQL(sql12, params12)
+            print(" [v] Email sent successfully")
         # =====================================
         # Xóa các file đã tạo sau khi gửi email
         for file_path in attachment_paths:
@@ -86,6 +89,12 @@ def send_mail_sub():
     """
         send_mail_queue
     """
+    # Define signal handler for graceful shutdown
+    def signal_handler(sig, frame):
+        sys.exit(0)
+ 
+    # Register the signal handler for SIGINT (Ctrl+C)
+    signal.signal(signal.SIGINT, signal_handler)
     queue = RABBIT_MQ_SEND_MAIL_QUEUE
     rabbit_mq.start_consumer(queue, consume_callback)
 

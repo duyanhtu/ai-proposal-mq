@@ -73,18 +73,51 @@ class ExtractExperienceRequirementList(BaseModel):
 class StateProposalV1(TypedDict):
     """
     StateProposalV1
+    Args:
+        agentai_name: str - Tên của agent AI
+        agentai_code: str - Mã của agent AI
+        document_type: str - Loại tài liệu
+        docuemnt_content: List[str] - Nội dung tài liệu dùng để bóc tách dữ liệu chung
+        document_file_md: List[dict] 
+            - Danh sách các file tài liệu được nhận từ markdown queue
+            - Cấu trúc {
+                    id: hs_id,
+                    files:[
+                        bucket,
+                        file_name,
+                        mdpath,
+                        document_detail_id
+                    ]
+                }
+        document_content_markdown_tbmt: str - Nội dung tài liệu markdown Thông báo mời thầu
+        document_content_markdown_hskt: str - Nội dung tài liệu markdown Hồ sơ kỹ thuật
+        document_content_markdown_hsmt: str - Nội dung tài liệu markdown Hồ sơ mời thầu
+        email_content_id: int - ID của email content
+        result_extraction_hr: Any - Kết quả trích xuất yêu cầu tài chính
+        result_extraction_finance: List[ExtractFinanceRequirement] - Kết quả trích xuất yêu cầu tài chính
+        result_extraction_experience: List[ExtractExperienceRequirement] - Kết quả trích xuất yêu cầu kinh nghiệm
+        result_extraction_overview: ExtractOverviewBiddingDocuments - Kết quả trích xuất thông tin tổng quan hồ sơ mời thầu
+        result_extraction_technology: Any - Kết quả trích xuất yêu cầu công nghệ
+        result_extraction_notice_bid: Any - Kết quả trích xuất thông báo mời thầu
+        proposal_id: int - ID của hồ sơ thầu
+        hs_id: str - ID của hồ sơ thầu
+        summary_hsmt: str - Tóm tắt hồ sơ mời thầu
+        is_data_extracted_finance: bool - Có dữ liệu tài chính được trích xuất hay không
+        is_exist_contnet_markdown_tbmt: bool - Có tồn tại nội dung markdown Thông báo mời thầu hay không
+        is_exist_contnet_markdown_hskt: bool - Có tồn tại nội dung markdown Hồ sơ kỹ thuật hay không
+        is_exist_contnet_markdown_hsmt: bool - Có tồn tại nội dung markdown Hồ sơ mời thầu hay không
     """
 
     agentai_name: str
     agentai_code: str
+    chapter_content: List[str]
     document_type: str
     document_content: List[str]
-    document_content_markdown: str
-    document_file_path: str
-    document_end_page: int
-    chapters_detail: List[dict]
-    chapters_map: List[ChapterMap]
-    chapter_content: List[str]
+    document_file_md: List[dict]
+    document_content_markdown_tbmt: str
+    document_content_markdown_hskt: str
+    document_content_markdown_hsmt: str
+    email_content_id: int
     result_extraction_hr: Any
     result_extraction_finance: List[ExtractFinanceRequirement]
     result_extraction_experience: List[ExtractExperienceRequirement]
@@ -92,17 +125,10 @@ class StateProposalV1(TypedDict):
     result_extraction_technology: Any
     result_extraction_notice_bid: Any
     proposal_id: int
-    email_content_id: int
-    filename: str
-    result_extraction_requirement: Any
     hs_id: str
-    document_file_md: List[dict]
-    document_content_pdf_all: str
-    document_content_markdown_tbmt: str
-    document_content_markdown_hskt: str
-    document_content_markdown_hsmt: str
-
     summary_hsmt: str
+    is_data_extracted_finance: bool
     is_exist_contnet_markdown_tbmt: bool
     is_exist_contnet_markdown_hskt: bool
     is_exist_contnet_markdown_hsmt: bool
+

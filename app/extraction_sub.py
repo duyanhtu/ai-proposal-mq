@@ -92,6 +92,7 @@ def consume_callback(ch, method, properties, body):
                 "hs_id": hs_id,
                 "proposal_id": res["proposal_id"],
                 "email_content_id": res["email_content_id"],
+                "is_data_extracted_finance": res["is_data_extracted_finance"],
                 "is_exist_contnet_markdown_hskt": res["is_exist_contnet_markdown_hskt"],
                 "is_exist_contnet_markdown_tbmt": res["is_exist_contnet_markdown_tbmt"],
                 "is_exist_contnet_markdown_hsmt": res["is_exist_contnet_markdown_hsmt"],
@@ -119,11 +120,9 @@ def extraction_sub():
     """
     # Define signal handler for graceful shutdown
     def signal_handler(sig, frame):
-        # logger.info("Interrupt received, shutting down...")
         sys.exit(0)
 
     # Register the signal handler for SIGINT (Ctrl+C)
     signal.signal(signal.SIGINT, signal_handler)
-
     queue = RABBIT_MQ_EXTRACTION_QUEUE
     rabbit_mq.start_consumer(queue, consume_callback)

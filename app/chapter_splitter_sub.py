@@ -188,6 +188,8 @@ def consume_callback(ch, method, properties, body):
             return
         # Tạo mapping {file_path: email_content_id} từ message
         original_file_paths = {file["file_type"]: file["id"] for file in files}
+
+        print(" [x] Original file paths: ", original_file_paths)
         files_object = []
         keyword = "tiêu chuẩn đánh giá"
         for f in files:
