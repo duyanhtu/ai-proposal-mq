@@ -39,6 +39,7 @@ class EnvSettings(BaseSettings, case_sensitive=True):
     RETRY_DELAY: int = 30
     GMAIL_ADDRESS: str = ""
     GMAIL_APP_PASSWORD: str = ""
+    GOOGLE_AI_STUDIO_KEY: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", extra="allow")
 
