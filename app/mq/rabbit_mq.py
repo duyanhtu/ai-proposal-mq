@@ -1,6 +1,7 @@
-import pika
 import json
 import time
+
+import pika
 
 
 class RabbitMQClient:
@@ -57,7 +58,8 @@ class RabbitMQClient:
                 exchange="",
                 routing_key=queue,
                 body=body.encode("utf-8"),
-                properties=pika.BasicProperties(delivery_mode=2 if self.durable else 1)
+                properties=pika.BasicProperties(
+                    delivery_mode=2 if self.durable else 1)
             )
             print(f" [x] Sent: {message}")
         except Exception as e:
@@ -65,31 +67,36 @@ class RabbitMQClient:
 
     def start_consumer(self, queue, call_back):
         """Bắt đầu consumer, lắng nghe queue."""
-        while True:
-            try:
-                if not self.channel or self.connection.is_closed:
-                    self._connect()
-
-                # Khai báo queue để đảm bảo nó tồn tại
-                self.channel.queue_declare(queue=queue, durable=self.durable)
-
-                self.channel.basic_consume(
-                    queue=queue, on_message_callback=call_back, auto_ack=True
-                )
-
-                print(f" [*] Waiting for messages on {queue}. To exit press CTRL+C")
-                self.channel.start_consuming()
-
-            except (
-                pika.exceptions.AMQPConnectionError,
-                pika.exceptions.ChannelClosedByBroker,
-            ) as e:
-                print(f" [!] Connection lost: {e}. Reconnecting in 5 seconds...")
-                time.sleep(5)
+        try:
+            if not self.channel or self.connection.is_closed:
                 self._connect()
 
+            # Khai báo queue để đảm bảo nó tồn tại
+            self.channel.queue_declare(queue=queue, durable=self.durable)
+
+            self.channel.basic_consume(
+                queue=queue, on_message_callback=call_back, auto_ack=True
+            )
+
+            print(
+                f" [*] Waiting for messages on {queue}. To exit press CTRL+C")
+
+            # Add a custom keyboard interrupt handler that properly closes connections
+            try:
+                self.channel.start_consuming()
             except KeyboardInterrupt:
-                print(" [!] Consumer stopped.")
-                if self.connection:
+                print("\n [!] Interrupted by user. Shutting down gracefully...")
+                self.channel.stop_consuming()
+                if self.connection and self.connection.is_open:
                     self.connection.close()
-                break
+                print(" [✓] RabbitMQ connection closed cleanly")
+                # Exit the consumer loop
+                return
+
+        except (
+            pika.exceptions.AMQPConnectionError,
+            pika.exceptions.ChannelClosedByBroker,
+        ) as e:
+            print(f" [!] Connection lost: {e}. Reconnecting in 5 seconds...")
+            time.sleep(5)
+            self._connect()

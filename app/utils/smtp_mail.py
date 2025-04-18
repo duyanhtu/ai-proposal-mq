@@ -517,7 +517,7 @@ def send_simple_email(email_address: str, app_password: str, recipient: str,
 
 def send_email_with_attachments(email_address: str, app_password: str,
                                 recipient: str, subject: str, body: str,
-                                attachment_paths: List[str]) -> Dict[str, Any]:
+                                attachment_paths: List[str] = None) -> Dict[str, Any]:
     """
     Send an email with file attachments
 
