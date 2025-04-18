@@ -16,7 +16,7 @@ from app.config.env import EnvSettings
 env = EnvSettings()
 
 # Configure Gemini API with key from environment
-genai.configure(api_key="AIzaSyA7h4hlPYDwSNl9syJuS5nFG7FWWgczBTc")
+genai.configure(api_key=EnvSettings().GOOGLE_AI_STUDIO_KEY)
 
 # Initialize Gemini 1.5 Flash model
 model = genai.GenerativeModel('gemini-1.5-flash')
