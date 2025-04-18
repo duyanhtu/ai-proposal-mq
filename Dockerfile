@@ -36,16 +36,16 @@ logfile_maxbytes=50MB\n\
 logfile_backups=10\n\
 \n\
 [program:main]\n\
-command=python /app/main.py\n\
-stdout_logfile=/var/log/main.log\n\
-stderr_logfile=/var/log/main_error.log\n\
+command=python /app/main_chapter_splitter.py\n\
+stdout_logfile=/var/log/main_chapter_splitter.log\n\
+stderr_logfile=/var/log/main_chapter_splitter_error.log\n\
 autorestart=true\n\
 startretries=10\n\
 \n\
 [program:main1]\n\
-command=python /app/main1.py\n\
-stdout_logfile=/var/log/main1.log\n\
-stderr_logfile=/var/log/main1_error.log\n\
+command=python /app/main_extraction_sub.py\n\
+stdout_logfile=/var/log/main_extraction_sub.log\n\
+stderr_logfile=/var/log/main_extraction_sub_error.log\n\
 autorestart=true\n\
 startretries=10\n\
 \n\
