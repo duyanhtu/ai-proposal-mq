@@ -27,6 +27,7 @@ COPY ./main_send_mail.py /app/main_send_mail.py
 COPY ./credentials.json /app/credentials.json
 COPY ./token.pickle /app/token.pickle
 COPY ./temp /app/temp
+COPY ./logs /app/logs
 
 # Set up supervisord configuration
 RUN echo '[supervisord]\n\
