@@ -1,14 +1,15 @@
 # Use Python 3.12 as the base image
-FROM python:3.13-alpine
+FROM python:3.12
 
 # Set working directory
 WORKDIR /app
 
 # Install system dependencies and supervisord
-RUN apk add --no-cache \
-    build-base \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
     supervisor \
-    && rm -rf /var/cache/apk/*
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better layer caching
 COPY ./requirements.txt /app/requirements.txt
@@ -19,8 +20,8 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 # Copy the rest of the application code
 COPY ./app /app/app
 COPY .env /app/.env
-COPY ./main_chapter_splitter.py /app/main_chapter_splitter.py
 COPY ./main_classify.py /app/main_classify.py
+COPY ./main_chapter_splitter.py /app/main_chapter_splitter.py
 COPY ./main_extraction_sub.py /app/main_extraction_sub.py
 COPY ./main_sql_answer.py /app/main_sql_answer.py
 COPY ./main_send_mail.py /app/main_send_mail.py

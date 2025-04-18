@@ -20,7 +20,7 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 # Copy the rest of the application code
 COPY ./app /app/app
 COPY .env /app/.env
-COPY ./main.py /app/main.py
+COPY ./main_chapter_splitter.py /app/main_chapter_splitter.py
 COPY ./main1.py /app/main1.py
 COPY ./main_sql_answer.py /app/main_sql_answer.py
 COPY ./main_send_mail.py /app/main_send_mail.py
