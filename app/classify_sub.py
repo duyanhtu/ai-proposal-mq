@@ -117,5 +117,5 @@ def classify_sub():
     # Register the signal handler for SIGINT (Ctrl+C)
     signal.signal(signal.SIGINT, signal_handler)
 
-    queue = EnvSettings().RABBIT_MQ_CLASSIFY_QUEUE
+    queue = RABBIT_MQ_CLASSIFY_QUEUE
     rabbit_mq.start_consumer(queue, consume_callback)
