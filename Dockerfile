@@ -1,5 +1,5 @@
 # Use Python 3.12 as the base image
-FROM python:3.13-alpine3.18
+FROM python:3.13-alpine
 
 # Set working directory
 WORKDIR /app
@@ -7,7 +7,8 @@ WORKDIR /app
 # Install system dependencies and supervisord
 RUN apk add --no-cache \
     build-base \
-    supervisor
+    supervisor \
+    && rm -rf /var/cache/apk/*
 
 # Copy requirements first for better layer caching
 COPY ./requirements.txt /app/requirements.txt
