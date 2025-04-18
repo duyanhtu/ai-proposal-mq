@@ -24,4 +24,4 @@ archive.zip
 *~
 .*.sw?
 .env
-/logs
+/logs/
