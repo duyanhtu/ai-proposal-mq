@@ -24,3 +24,6 @@ archive.zip
 *~
 .*.sw?
 .env
+/tests
+/data
+/result
