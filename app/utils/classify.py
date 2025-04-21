@@ -33,6 +33,9 @@ rabbit_mq = RabbitMQClient(
     password=EnvSettings().RABBIT_MQ_PASS,
 )
 
+BASE_DIR = os.environ.get('APP_BASE_DIR', os.path.dirname(
+    os.path.dirname(os.path.dirname(__file__))))
+
 
 def classify(hs_id: str, email: str):
     """
