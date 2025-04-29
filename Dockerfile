@@ -4,8 +4,9 @@ FROM python:3.12
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies and supervisord
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Install additional system dependencies
+RUN apt-get update && apt-get install -y ffmpeg libsm6 libxext6 \
+    && apt-get install -y --no-install-recommends \
     build-essential \
     supervisor \
     && apt-get clean \
