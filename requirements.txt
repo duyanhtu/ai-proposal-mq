@@ -386,4 +386,3 @@ yapf==0.43.0
 yarl==1.18.0
 zope.event==5.0
 zope.interface==7.2
-docx2md==0.7.0
