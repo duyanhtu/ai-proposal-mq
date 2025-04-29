@@ -99,7 +99,7 @@ def consume_callback(ch, method, properties, body):
         }
         try:
             res = sql_team_graph_v1_0_1_instance.invoke(
-                inputs,
+                inputs
             )
             print(res)
             print("[v] Done run graph and inserted finance requirement.")
