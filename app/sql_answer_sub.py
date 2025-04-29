@@ -100,12 +100,6 @@ def consume_callback(ch, method, properties, body):
         try:
             res = sql_team_graph_v1_0_1_instance.invoke(
                 inputs,
-                config={
-                    "callbacks": [langfuse_handler.env_ai_proposal()],
-                    "metadata": {
-                        "langfuse_user_id": f"sql_answer_sub_{hs_id}@hpt.vn"
-                    },
-                },
             )
             print(res)
             print("[v] Done run graph and inserted finance requirement.")
