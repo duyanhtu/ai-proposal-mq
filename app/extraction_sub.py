@@ -71,12 +71,6 @@ def consume_callback(ch, method, properties, body):
         try:
             res = proposal_md_team_graph_v1_0_2_instance.invoke(
                 inputs,
-                config={
-                    "callbacks": [langfuse_handler.env_ai_proposal()],
-                    "metadata": {
-                        "langfuse_user_id":f"extraction_sub_{hs_id}@hpt.vn",
-                    },
-                },
             )
             next_queue = RABBIT_MQ_SQL_ANSWER_QUEUE
             next_message = {
