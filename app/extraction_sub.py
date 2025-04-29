@@ -70,7 +70,7 @@ def consume_callback(ch, method, properties, body):
         }
         try:
             res = proposal_md_team_graph_v1_0_2_instance.invoke(
-                inputs,
+                inputs
             )
             next_queue = RABBIT_MQ_SQL_ANSWER_QUEUE
             next_message = {
