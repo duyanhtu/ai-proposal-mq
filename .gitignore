@@ -27,3 +27,4 @@ archive.zip
 /tests
 /data
 /result
+.env.production
