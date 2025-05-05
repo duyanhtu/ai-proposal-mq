@@ -40,6 +40,7 @@ class EnvSettings(BaseSettings, case_sensitive=True):
     GMAIL_ADDRESS: str = ""
     GMAIL_APP_PASSWORD: str = ""
     GOOGLE_AI_STUDIO_KEY: str = ""
+    LOGGING_LEVEL: str = "DEBUG"
 
     model_config = SettingsConfigDict(env_file=".env", extra="allow")
 
