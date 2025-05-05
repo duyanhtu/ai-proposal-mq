@@ -39,35 +39,35 @@ logfile_backups=10\n\
 [program:main_classify]\n\
 command=python /app/main_classify.py\n\
 stdout_logfile=/var/log/main_classify.log\n\
-stderr_logfile=/var/log/main_classify_error.log\n\
+stderr_logfile=/var/log/main_classify.log\n\
 autorestart=true\n\
 startretries=10\n\
 \n\
 [program:main_chapter_splitter]\n\
 command=python /app/main_chapter_splitter.py\n\
 stdout_logfile=/var/log/main_chapter_splitter.log\n\
-stderr_logfile=/var/log/main_chapter_splitter_error.log\n\
+stderr_logfile=/var/log/main_chapter_splitter.log\n\
 autorestart=true\n\
 startretries=10\n\
 \n\
 [program:main_extraction_sub]\n\
 command=python /app/main_extraction_sub.py\n\
 stdout_logfile=/var/log/main_extraction_sub.log\n\
-stderr_logfile=/var/log/main_extraction_sub_error.log\n\
+stderr_logfile=/var/log/main_extraction_sub.log\n\
 autorestart=true\n\
 startretries=10\n\
 \n\
 [program:main_sql_answer]\n\
 command=python /app/main_sql_answer.py\n\
 stdout_logfile=/var/log/main_sql_answer.log\n\
-stderr_logfile=/var/log/main_sql_answer_error.log\n\
+stderr_logfile=/var/log/main_sql_answer.log\n\
 autorestart=true\n\
 startretries=10\n\
 \n\
 [program:main_send_mail]\n\
 command=python /app/main_send_mail.py\n\
 stdout_logfile=/var/log/main_send_mail.log\n\
-stderr_logfile=/var/log/main_send_mail_error.log\n\
+stderr_logfile=/var/log/main_send_mail.log\n\
 autorestart=true\n\
 startretries=10\n'\
 > /etc/supervisor/conf.d/app.conf
