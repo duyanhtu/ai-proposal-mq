@@ -1,5 +1,6 @@
 import json
 import time
+from typing import Callable
 
 import pika
 from pika.exceptions import AMQPConnectionError, ChannelClosedByBroker
@@ -41,7 +42,7 @@ class RabbitMQClient:
                 host=self.host,
                 port=self.port,
                 credentials=self.credentials,
-                heartbeat=25,  # Heartbeat to detect connection issues
+                heartbeat=60,  # Heartbeat to detect connection issues
                 blocked_connection_timeout=300,  # Timeout for blocked connections
                 connection_attempts=3,  # Attempt reconnection on initial connect
                 retry_delay=5  # Delay between connection attempts
@@ -105,23 +106,43 @@ class RabbitMQClient:
                 logger.error(f"Unexpected error during publish: {e}")
                 raise
 
-    def start_consumer(self, queue, callback):
-        """Bắt đầu consumer, lắng nghe queue với retry logic."""
+    def start_consumer(self, queue, callback: Callable):
+        """Bắt đầu consumer, lắng nghe queue với retry logic và manual acknowledgment."""
 
         # Wrap the callback to handle exceptions and acknowledgment
         def wrapped_callback(ch, method, properties, body):
+            message_id = method.delivery_tag
+            logger.debug(f"Processing message {message_id} from {queue}")
+
             try:
-                logger.debug(
-                    f"Processing message from {queue}: {body[:200]}...")
+                # Execute the callback with manual acknowledgment responsibility
                 result = callback(ch, method, properties, body)
+
                 # Explicitly acknowledge the message after successful processing
-                ch.basic_ack(delivery_tag=method.delivery_tag)
+                if ch.is_open:
+                    ch.basic_ack(delivery_tag=method.delivery_tag)
+                    logger.debug(f"Acknowledged message {message_id}")
+                else:
+                    logger.warning(
+                        f"Channel closed, couldn't acknowledge message {message_id}")
+
                 return result
             except Exception as e:
-                logger.error(f"Error processing message: {e}", exc_info=True)
-                # Decide whether to requeue based on the type of exception
-                # You might want to implement dead-letter handling for permanent failures
-                ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+                logger.error(
+                    f"Error processing message {message_id}: {e}", exc_info=True)
+
+                # Only nack if the channel is still open
+                if ch.is_open:
+                    # Negative acknowledgment - requeue the message if it's a temporary failure
+                    ch.basic_nack(
+                        delivery_tag=method.delivery_tag, requeue=True)
+                    logger.debug(f"Nacked and requeued message {message_id}")
+                else:
+                    logger.warning(
+                        f"Channel closed, couldn't nack message {message_id}")
+
+                # Reraise the exception to trigger reconnection
+                raise
 
         while True:
             try:
