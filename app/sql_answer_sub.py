@@ -2,27 +2,32 @@ import json
 import os
 import signal
 import sys
-import traceback
+
 from app.config import langfuse_handler
 from app.config.env import EnvSettings
 from app.mq.rabbit_mq import RabbitMQClient
-from app.storage import postgre
 from app.nodes.agentic_sql_finance.sql_team_v1_0_1 import (
     sql_team_graph_v1_0_1_instance,
 )
+from app.storage import postgre
+from app.utils.logger import get_logger
+
+# Initialize logger
+logger = get_logger(__name__)
+
 MINIO_API_ENDPOINT = EnvSettings().MINIO_API_ENDPOINT  # Cổng API
 MINIO_CONSOLE_ENDPOINT = EnvSettings().MINIO_CONSOLE_ENDPOINT  # Cổng Console (UI)
 MINIO_ACCESS_KEY = EnvSettings().MINIO_ACCESS_KEY
 MINIO_SECRET_KEY = EnvSettings().MINIO_SECRET_KEY
-MINIO_SECURE = EnvSettings().MINIO_SECURE 
+MINIO_SECURE = EnvSettings().MINIO_SECURE
 
 # Khởi tạo RabbitMQClient dùng chung
 RABBIT_MQ_HOST = EnvSettings().RABBIT_MQ_HOST
 RABBIT_MQ_PORT = EnvSettings().RABBIT_MQ_PORT
 RABBIT_MQ_USER = EnvSettings().RABBIT_MQ_USER
 RABBIT_MQ_PASS = EnvSettings().RABBIT_MQ_PASS
-RABBIT_MQ_SEND_MAIL_QUEUE=  EnvSettings().RABBIT_MQ_SEND_MAIL_QUEUE
-RABBIT_MQ_SQL_ANSWER_QUEUE=  EnvSettings().RABBIT_MQ_SQL_ANSWER_QUEUE
+RABBIT_MQ_SEND_MAIL_QUEUE = EnvSettings().RABBIT_MQ_SEND_MAIL_QUEUE
+RABBIT_MQ_SQL_ANSWER_QUEUE = EnvSettings().RABBIT_MQ_SQL_ANSWER_QUEUE
 
 # Khởi tạo RabbitMQClient dùng chung
 rabbit_mq = RabbitMQClient(
@@ -43,14 +48,14 @@ def consume_callback(ch, method, properties, body):
     """Xử lý tin nhắn nhận được từ queue."""
     try:
         message = json.loads(body.decode('utf-8'))  # Giải mã JSON
-        print(f" [x] Received: {message}\n")
-        hs_id=message["hs_id"]
-        proposal_id=message["proposal_id"]
-        email_content_id=message["email_content_id"]
-        is_data_extracted_finance= message["is_data_extracted_finance"]
-        is_exist_contnet_markdown_hskt =message["is_exist_contnet_markdown_hskt"]
-        is_exist_contnet_markdown_tbmt =message["is_exist_contnet_markdown_tbmt"]
-        is_exist_contnet_markdown_hsmt =message["is_exist_contnet_markdown_hsmt"]
+        logger.info(f" [x] Received: {message}\n")
+        hs_id = message["hs_id"]
+        proposal_id = message["proposal_id"]
+        email_content_id = message["email_content_id"]
+        is_data_extracted_finance = message["is_data_extracted_finance"]
+        is_exist_contnet_markdown_hskt = message["is_exist_contnet_markdown_hskt"]
+        is_exist_contnet_markdown_tbmt = message["is_exist_contnet_markdown_tbmt"]
+        is_exist_contnet_markdown_hsmt = message["is_exist_contnet_markdown_hsmt"]
         sql = """
                 select fr.id,fr.proposal_id, fr.requirements , fr.description, p.closing_time,p.release_date,p.decision_number,
                 p.project,p.package_number,p.selection_method,p.field,p.execution_duration,p.validity_period,p.security_amount
@@ -61,7 +66,7 @@ def consume_callback(ch, method, properties, body):
         params = (proposal_id,)
         results = postgre.selectSQL(sql, params)
         # if not results:
-        #     print(f"[X] Error không có thông tin tài chính với {proposal_id}")
+        #     logger.error(f"[X] Error không có thông tin tài chính với {proposal_id}")
         #     return
         # Finance
         data_finance = [
@@ -97,9 +102,9 @@ def consume_callback(ch, method, properties, body):
             },
             "email_content_id": email_content_id,
             "is_data_extracted_finance": is_data_extracted_finance,
-            "is_exist_contnet_markdown_hskt":is_exist_contnet_markdown_hskt,
-            "is_exist_contnet_markdown_tbmt":is_exist_contnet_markdown_tbmt,
-            "is_exist_contnet_markdown_hsmt":is_exist_contnet_markdown_hsmt,
+            "is_exist_contnet_markdown_hskt": is_exist_contnet_markdown_hskt,
+            "is_exist_contnet_markdown_tbmt": is_exist_contnet_markdown_tbmt,
+            "is_exist_contnet_markdown_hsmt": is_exist_contnet_markdown_hsmt,
         }
         try:
             res = sql_team_graph_v1_0_1_instance.invoke(
@@ -111,10 +116,11 @@ def consume_callback(ch, method, properties, body):
                     },
                 },
             )
-            print("[v] Done run graph and inserted finance requirement.")
+            logger.info("[v] Done run graph and inserted finance requirement.")
         except Exception as e:
-            print(f" [!] Unexpected error during invoke: {e}", traceback.format_exc())
-        
+            logger.error(
+                f" [!] Unexpected error during invoke: {e}", exc_info=True)
+
         sql = "SELECT * from email_contents where id = %s"
         params = (res["email_content_id"],)
         email_sql = postgre.selectSQL(sql, params)
@@ -133,9 +139,10 @@ def consume_callback(ch, method, properties, body):
         # RETURN res
         return res
     except json.JSONDecodeError:
-        print(f" [!] Error: Invalid JSON format: {body}", traceback.format_exc())
+        logger.error(f" [!] Error: Invalid JSON format: {body}", exc_info=True)
     except Exception:
-        print(f" [!] Error: Something was wrong: {body}", traceback.format_exc())
+        logger.error(f" [!] Error: Something was wrong: {body}", exc_info=True)
+
 
 def sql_answer_sub():
     """
@@ -144,7 +151,7 @@ def sql_answer_sub():
     # Define signal handler for graceful shutdown
     def signal_handler(sig, frame):
         sys.exit(0)
- 
+
     # Register the signal handler for SIGINT (Ctrl+C)
     signal.signal(signal.SIGINT, signal_handler)
     queue = RABBIT_MQ_SQL_ANSWER_QUEUE

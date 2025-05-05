@@ -11,6 +11,10 @@ import PIL.Image
 from PIL import Image
 
 from app.config.env import EnvSettings
+from app.utils.logger import get_logger
+
+# Initialize logger
+logger = get_logger(__name__)
 
 # Load environment settings
 env = EnvSettings()
@@ -159,9 +163,9 @@ def process_image_batch(images, prompt, batch_size=None, save_debug=False):
         debug_dir = Path("debug")
         debug_dir.mkdir(exist_ok=True)
         debug_path = debug_dir / \
-            f"batch_debug_{len(images)}pages_{datetime.now().strftime("%H%M%S")}.png"
+            f"batch_debug_{len(images)}pages_{datetime.now().strftime('%H%M%S')}.png"
         combined_img.save(debug_path, format="PNG", compress_level=1)
-        print(f"Debug image saved to {debug_path}")
+        logger.info(f"Debug image saved to {debug_path}")
 
     # Estimate the file size to ensure it's not too large for API
     img_buffer = io.BytesIO()
@@ -170,7 +174,7 @@ def process_image_batch(images, prompt, batch_size=None, save_debug=False):
 
     # If file is too large, reduce batch size and retry
     if file_size_mb > 20:  # 20MB is a reasonable limit
-        print(
+        logger.info(
             f"Combined image too large: {file_size_mb:.2f}MB. Reducing batch size.")
         mid_point = len(images) // 2
         first_half = process_image_batch(images[:mid_point], prompt)
@@ -192,7 +196,7 @@ def process_image_batch(images, prompt, batch_size=None, save_debug=False):
         )
         return response.text
     except Exception as e:
-        print(f"Error processing batch: {str(e)}")
+        logger.error(f"Error processing batch: {str(e)}")
         return f"[Error processing batch: {str(e)}]"
 
 
@@ -277,7 +281,7 @@ If an image is unclear, indicate this in your output rather than guessing the co
 
         # Process batch if it reaches batch_size or this is the last page
         if len(current_batch) >= batch_size or page_num == total_pages - 1:
-            print(
+            logger.info(
                 f"Processing batch of pages {batch_start_page+1} to {page_num+1}...")
 
             # Process the batch
@@ -360,7 +364,7 @@ def main():
 
     # Process all PDF files in the data directory
     for pdf_file in DATA_DIR.glob('*.pdf'):
-        print(f"Processing {pdf_file.name}...")
+        logger.info(f"Processing {pdf_file.name}...")
 
         # Create output filename
         output_file = RESULTS_DIR / f"{pdf_file.stem}.md"
@@ -375,7 +379,7 @@ def main():
 
         # Save the output
         save_output(content, output_file)
-        print(f"Saved results to {output_file}")
+        logger.info(f"Saved results to {output_file}")
 
 
 if __name__ == "__main__":
