@@ -1,13 +1,13 @@
 
 # MinIO configuration - sử dụng cổng 9000 cho API S3
 import os
-from fastapi import HTTPException
-import minio
-from minio.error import S3Error
 from pathlib import Path
 
-from app.config.env import EnvSettings
+import minio
+from fastapi import HTTPException
+from minio.error import S3Error
 
+from app.config.env import EnvSettings
 
 MINIO_API_ENDPOINT = EnvSettings().MINIO_API_ENDPOINT  # Cổng API
 MINIO_CONSOLE_ENDPOINT = EnvSettings().MINIO_CONSOLE_ENDPOINT  # Cổng Console (UI)
@@ -22,6 +22,7 @@ HOME_DIR = str(Path.home())
 DOWNLOADS_DIR = os.path.join(HOME_DIR, "Downloads")
 os.makedirs(DOWNLOADS_DIR, exist_ok=True)
 
+
 def get_minio_client():
     """Create and return a MinIO client"""
     print(f"Initializing MinIO client with endpoint: {MINIO_API_ENDPOINT}")
@@ -32,7 +33,8 @@ def get_minio_client():
         secure=MINIO_SECURE
     )
 
-def download_file_from_minio(filename: str):
+
+def download_file_from_minio(filename: str, bucket: str = MINIO_BUCKET):
     """
     Tải file từ MinIO về thư mục Downloads.
 
@@ -46,17 +48,17 @@ def download_file_from_minio(filename: str):
     filename = filename[index+1:]
     # Khởi tạo MinIO client
     minio_client = get_minio_client()
-    print("") 
+    print("")
     try:
-    
+
         # Kiểm tra file có tồn tại không
         try:
-            stat = minio_client.stat_object(MINIO_BUCKET, filename)
+            stat = minio_client.stat_object(bucket, filename)
             print(f"Found file in MinIO: {filename}, Size: {stat.size} bytes")
-        except S3Error as stat_err:
+        except S3Error:
             raise HTTPException(
-                status_code=404, 
-                detail=f"File '{filename}' không tồn tại trong bucket {MINIO_BUCKET}"
+                status_code=404,
+                detail=f"File '{filename}' không tồn tại trong bucket {bucket}"
             )
 
         # Định nghĩa thư mục lưu file
@@ -77,7 +79,7 @@ def download_file_from_minio(filename: str):
 
         # Tải file từ MinIO
         minio_client.fget_object(
-            bucket_name=MINIO_BUCKET,
+            bucket_name=bucket,
             object_name=filename,
             file_path=download_path
         )
