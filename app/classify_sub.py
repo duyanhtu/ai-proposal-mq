@@ -118,4 +118,4 @@ def classify_sub():
     signal.signal(signal.SIGINT, signal_handler)
 
     queue = RABBIT_MQ_CLASSIFY_QUEUE
-    rabbit_mq.start_consumer(queue, consume_callback)
+    rabbit_mq.start_consumer(queue, consume_callback, auto_ack=True)

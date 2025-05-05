@@ -106,40 +106,44 @@ class RabbitMQClient:
                 logger.error(f"Unexpected error during publish: {e}")
                 raise
 
-    def start_consumer(self, queue, callback: Callable):
-        """Bắt đầu consumer, lắng nghe queue với retry logic và manual acknowledgment."""
+    def start_consumer(self, queue, callback: Callable, auto_ack=False):
+        """
+        Bắt đầu consumer, lắng nghe queue với retry logic.
 
+        Args:
+            queue: Tên queue để listen
+            callback: Hàm callback để xử lý message
+            auto_ack: True để tự động acknowledge message, False để manual acknowledge
+                      (Default: False - manual acknowledgment for safety)
+        """
         # Wrap the callback to handle exceptions and acknowledgment
         def wrapped_callback(ch, method, properties, body):
             message_id = method.delivery_tag
             logger.debug(f"Processing message {message_id} from {queue}")
 
             try:
-                # Execute the callback with manual acknowledgment responsibility
+                # Execute the callback
                 result = callback(ch, method, properties, body)
 
-                # Explicitly acknowledge the message after successful processing
-                if ch.is_open:
+                # Only handle manual acknowledgment if auto_ack is False
+                if not auto_ack and ch.is_open:
                     ch.basic_ack(delivery_tag=method.delivery_tag)
-                    logger.debug(f"Acknowledged message {message_id}")
-                else:
-                    logger.warning(
-                        f"Channel closed, couldn't acknowledge message {message_id}")
+                    logger.debug(f"Manually acknowledged message {message_id}")
 
                 return result
             except Exception as e:
                 logger.error(
                     f"Error processing message {message_id}: {e}", exc_info=True)
 
-                # Only nack if the channel is still open
-                if ch.is_open:
+                # Only handle negative acknowledgment if auto_ack is False and channel is open
+                if not auto_ack and ch.is_open:
                     # Negative acknowledgment - requeue the message if it's a temporary failure
                     ch.basic_nack(
                         delivery_tag=method.delivery_tag, requeue=True)
                     logger.debug(f"Nacked and requeued message {message_id}")
-                else:
+                elif not ch.is_open:
                     logger.warning(
-                        f"Channel closed, couldn't nack message {message_id}")
+                        f"Channel closed, couldn't handle acknowledgment for message {message_id}")
 
                 # Reraise the exception to trigger reconnection
                 raise
@@ -153,17 +157,20 @@ class RabbitMQClient:
                 self.channel.queue_declare(queue=queue, durable=self.durable)
 
                 # Set QoS - only process one message at a time until acknowledged
-                self.channel.basic_qos(prefetch_count=self.prefetch_count)
+                # Only apply prefetch if using manual acknowledgment
+                if not auto_ack:
+                    self.channel.basic_qos(prefetch_count=self.prefetch_count)
 
-                # Start consuming with auto_ack=False to use manual acknowledgment
+                # Start consuming with the specified auto_ack setting
                 self.channel.basic_consume(
                     queue=queue,
                     on_message_callback=wrapped_callback,
-                    auto_ack=False
+                    auto_ack=auto_ack
                 )
 
+                ack_mode = "automatic" if auto_ack else "manual"
                 logger.info(
-                    f"Waiting for messages on {queue}. To exit press CTRL+C")
+                    f"Waiting for messages on {queue} with {ack_mode} acknowledgment. To exit press CTRL+C")
                 self.channel.start_consuming()
 
             except KeyboardInterrupt:
