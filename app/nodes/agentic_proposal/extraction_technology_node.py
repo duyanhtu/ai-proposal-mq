@@ -11,8 +11,11 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_text_splitters import MarkdownTextSplitter
 # Your imports
 from app.model_ai import llm
+from app.nodes.agentic_proposal.extraction_handle_error import format_error_message
 from app.nodes.states.state_proposal_v1 import StateProposalV1
+from app.utils.logger import get_logger
 
+logger = get_logger("except_handling_extraction")
 
 class ExtractionTechnologyMDNodeV1m0p0:
     """
@@ -867,103 +870,148 @@ class ExtractionTechnologyNodeV1m0p2:
 
     def __call__(self, state: StateProposalV1):
         print(self.name)
-        chapter_content = state["document_content_markdown_hskt"]
+        try:
+            chapter_content = state["document_content_markdown_hskt"]
 
-        # Không có chương liên quan để bóc tách
-        if len(chapter_content) < 1:
+            # Không có chương liên quan để bóc tách
+            if len(chapter_content) < 1:
+                return {
+                    "result_extraction_technology": [],
+                }
+            # Load your Markdown file
+            markdown_splitter = MarkdownTextSplitter(
+                chunk_size=10000,
+                chunk_overlap=200,
+                keep_separator=False
+            )
+            chunks = markdown_splitter.split_text(chapter_content)
+            def process_chunk(chunk, chunk_index):
+                print(f"Processing chunk {chunk_index+1}/{len(chunks)}")
+                chat_prompt_template = ChatPromptTemplate.from_template(self._get_prompt_template())
+                prompt = chat_prompt_template.invoke({"content": chunk})
+
+                try:
+                    response = llm.chat_model_gpt_4o_mini_16k().with_structured_output(
+                        None, method="json_mode").invoke(prompt)
+
+                    if isinstance(response, list):
+                        return response
+                    elif isinstance(response, dict) and response:
+                        return [response]
+                    return []
+                except Exception as e:
+                    print(f"Error processing chunk {chunk_index+1}: {str(e)}")
+                    return []
+
+            max_workers = min(8, len(chunks))
+            all_results = []
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                # Create a MarkdownTextSplitter
+                futures = [executor.submit(process_chunk, chunk, i)
+                            for i, chunk in enumerate(chunks)]
+                for future in futures:
+                    chunk_results = future.result()
+                    all_results.extend(chunk_results)
+            merged_results = self._merge_technical_results(all_results)
+
+            # merged = {
+            #     "requirement_level_0": {
+            #         "muc": "1.",
+            #         "requirement_name": "Yêu cầu về kỹ thuật",
+            #         "sub_requirements": []
+            #     }
+            # }
+
+            # # Extract sub_requirements from the response
+            # for item in merged_results:
+            #     sub_reqs = item["requirement_level_0"].get("sub_requirements", [])
+            #     merged["requirement_level_0"]["sub_requirements"].extend(sub_reqs)
+
+            # return {"result_extraction_technology": merged}
+            # Khởi tạo cấu trúc gộp
+            merged = {
+                "hr": [],
+                "requirement_level_0": {
+                    "muc": "1.",
+                    "requirement_name": "Yêu cầu về kỹ thuật",
+                    "sub_requirements": []
+                }
+            }
+
+            # Tập hợp để theo dõi các mục duy nhất nhằm loại bỏ trùng lặp
+            hr_seen = set()
+            sub_req_muc_seen = set()
+
+            # Gộp hr và sub_requirements từ các khối
+            for item in merged_results:
+                # Bỏ qua nếu item không hợp lệ
+                if not isinstance(item, dict):
+                    continue
+
+                # Gộp hr
+                hr_list = item.get("hr", [])
+                for hr_item in hr_list:
+                    # Tạo khóa duy nhất cho mục hr
+                    hr_key = (
+                        hr_item.get("position", ""),
+                        hr_item.get("quantity", "0"),
+                        tuple(
+                            (req.get("name", ""), req.get("description", ""))
+                            for req in hr_item.get("requirements", [])
+                        )
+                    )
+                    if hr_key not in hr_seen:
+                        hr_seen.add(hr_key)
+                        merged["hr"].append(hr_item)
+
+                # Gộp sub_requirements
+                if "requirement_level_0" in item:
+                    sub_reqs = item["requirement_level_0"].get("sub_requirements", [])
+                    for sub_req in sub_reqs:
+                        # Kiểm tra trùng lặp dựa trên muc của requirement_level_1
+                        sub_muc = sub_req.get("requirement_level_1", {}).get("muc", "")
+                        if sub_muc and sub_muc not in sub_req_muc_seen:
+                            sub_req_muc_seen.add(sub_muc)
+                            merged["requirement_level_0"]["sub_requirements"].append(sub_req)
+
+            # Sắp xếp để đảm bảo đầu ra nhất quán
+            merged["hr"].sort(key=lambda x: x["position"])
+            merged["requirement_level_0"]["sub_requirements"].sort(
+                key=lambda x: x["requirement_level_1"]["muc"]
+            )
+            return {"result_extraction_technology": merged}
+        except Exception as e:
+            error_msg = format_error_message(
+                node_name=self.name,
+                e=e,
+                context=f"hs_id: {state.get('hs_id', '')}", 
+                include_trace=True
+            )
             return {
                 "result_extraction_technology": [],
+                "error_messages": [error_msg],
             }
-        # Load your Markdown file
-        markdown_splitter = MarkdownTextSplitter(
-            chunk_size=10000,
-            chunk_overlap=200,
-            keep_separator=False
-        )
-        chunks = markdown_splitter.split_text(chapter_content)
-        def process_chunk(chunk, chunk_index):
-            print(f"Processing chunk {chunk_index+1}/{len(chunks)}")
-            chat_prompt_template = ChatPromptTemplate.from_template(self._get_prompt_template())
-            prompt = chat_prompt_template.invoke({"content": chunk})
-
-            try:
-                response = llm.chat_model_gpt_4o_mini_16k().with_structured_output(
-                    None, method="json_mode").invoke(prompt)
-
-                if isinstance(response, list):
-                    return response
-                elif isinstance(response, dict) and response:
-                    return [response]
-                return []
-            except Exception as e:
-                print(f"Error processing chunk {chunk_index+1}: {str(e)}")
-                return []
-
-        max_workers = min(8, len(chunks))
-        all_results = []
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # Create a MarkdownTextSplitter
-            futures = [executor.submit(process_chunk, chunk, i)
-                        for i, chunk in enumerate(chunks)]
-            for future in futures:
-                chunk_results = future.result()
-                all_results.extend(chunk_results)
-        merged_results = self._merge_technical_results(all_results)
-
-        merged = {
-            "requirement_level_0": {
-                "muc": "1.",
-                "requirement_name": "Yêu cầu về kỹ thuật",
-                "sub_requirements": []
-            }
-        }
-
-        # Extract sub_requirements from the response
-        for item in merged_results:
-            sub_reqs = item["requirement_level_0"].get("sub_requirements", [])
-            merged["requirement_level_0"]["sub_requirements"].extend(sub_reqs)
-
-        return {"result_extraction_technology": merged}
     
     def _get_prompt_template(self):
         """Return the prompt template for extraction"""
         # Your existing prompt template here
         return """
            Bạn là một chuyên gia trích xuất các yêu cầu của hồ sơ mời thầu.
-            Hãy lấy các yêu cầu kỹ thuật theo quy tắc sau:
-            1. Trích xuất dữ liệu nếu có trong hồ sơ mời thầu về các yêu cầu sau :
-                Yêu cầu chung,
-                Yêu cầu chức năng nghiệp vụ, 
-                Yêu cầu kiến trúc, 
-                Yêu cầu triển khai, 
-                Yêu cầu bảo mật, 
-                Yêu cầu đào tạo & bàn giao, 
-                Yêu cầu bản quyền, bảo hành bảo trì,
-                Yêu cầu dịch vụ triển khai,
-                Yêu cầu thông số kỹ thuật của thiết bị,
-                Yêu cầu về tiến độ cung cấp hàng hóa, dịch vụ,       
-                yêu cầu chức năng nghiệp vụ, 
-                yêu cầu sizing, 
-                yêu cầu license ,
-                yêu cầu thời gian,
-                yêu cầu khác
+            Hãy lấy tất cả các yêu cầu về kỹ thuật và các yêu cầu khác trong file được cung cấp.
             **CHÚ Ý:** PHẢI lấy đầy đủ nội dung yêu cầu và mô tả chi tiết yêu cầu trong tài liệu theo dữ liệu gốc.
-                    Nếu không tìm thấy một trong các mục trên thì bỏ qua.
                     Không lấy các thông tin về giới thiệu chung về gói thầu.
                     KHông lấy thông tin phạm vi gói thầu
-                    KHÔNG lấy tiêu đề cột trong bảng làm yêu cầu.
                     KHÔNG tách nội dung mô tả để làm yêu cầu
-                    Các yêu cầu phải theo heading hoặc các yêu cầu được mô tả trong bảng.
-            2. Mô tả yêu cầu được viết trong 1 đoạn (ngăn cách bằng |   |) với 
+                   
+            2. Đối với dữ liệu yêu cầu trong bảng yêu cầu được viết trong 1 đoạn (ngăn cách bằng |   |) với
                 - Nội dung cần trích xuất bắt đầu từ dấu `|` và kết thúc ngay trước dấu `|` tiếp theo (hoặc hết nội dung nếu không có dấu `|` tiếp theo).
                 - Giữ nguyên toàn bộ nội dung gốc trong khoảng giữa hai dấu `|`, bao gồm cả định dạng văn bản, ký tự xuống dòng, hoặc ký tự đặc biệt nếu có, xóa dấu `|`.
-                - Nếu không tìm thấy cặp dấu `|` nào, trả về mảng rỗng.
-                - Trong nội dung có các chú ý trong dấu () thì hãy lấy hết nội dung trong ngoặc đó như Điều khoản (3), Nghị định (8), Tiết (e), v.v. 
+                - Trong nội dung có các chú ý trong dấu () thì hãy lấy hết nội dung trong ngoặc đó như Điều khoản (3), Nghị định (8), Tiết (e), v.v.
                 - Nếu dạng table thì mỗi row cho vào 1 description_detail riêng biệt.
                 - KHông lấy tiêu đề cột trong bảng để làm yêu cầu.(ví dụ Thông số kỹ thuật/Yêu cầu dịch vụ  là tên cột của bảng yêu cầu cần bóc tách thì không đưa thành yêu cầu)
-            3. Trích xuất toàn bộ dữ liệu của hàng để lấy tên yêu cầu, mô tả của yêu cầu và nối thêm thang điểm chi tiết nếu có, mẫu số tài liệu.
-            4. Trong yêu cầu nếu có lưu ý trong ngoặc() hãy trích xuất đầy đủ thông tin trong ngoặc.
+            3.Đối với dữ liệu không nằm trong bảng lấy yêu cầu theo heading( hoặc -)
             5. Bỏ qua các chỉ mục ví dụ 3.1, 3.2,.... và lấy đúng tên yêu cầu cần lấy.
+           
             6. Ví dụ chỉ để tham khảo KHÔNG phải là nội dung cần bóc tách.
             7. Đầu ra hãy trả về dạng JSON.
  
