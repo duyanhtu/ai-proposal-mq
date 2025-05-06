@@ -28,7 +28,7 @@ model = genai.GenerativeModel('gemini-1.5-flash')
 # Define input and output directories
 DATA_DIR = Path("data")
 RESULTS_DIR = Path("results")
-BATCH_SIZE = 5  # Number of images per batch
+BATCH_SIZE = 3  # Number of images per batch
 
 
 def convert_image_to_base64(image):
