@@ -1,5 +1,6 @@
 # Standard imports
-from typing import Any, List, TypedDict
+import operator
+from typing import Annotated, Any, List, TypedDict
 
 from pydantic import BaseModel, Field
 
@@ -106,6 +107,7 @@ class StateProposalV1(TypedDict):
         is_exist_contnet_markdown_tbmt: bool - Có tồn tại nội dung markdown Thông báo mời thầu hay không
         is_exist_contnet_markdown_hskt: bool - Có tồn tại nội dung markdown Hồ sơ kỹ thuật hay không
         is_exist_contnet_markdown_hsmt: bool - Có tồn tại nội dung markdown Hồ sơ mời thầu hay không
+        error_messages: Annotated[List[str], operator.add] - Danh sách các thông báo lỗi
     """
 
     agentai_name: str
@@ -131,4 +133,5 @@ class StateProposalV1(TypedDict):
     is_exist_contnet_markdown_tbmt: bool
     is_exist_contnet_markdown_hskt: bool
     is_exist_contnet_markdown_hsmt: bool
+    error_messages: Annotated[List[str], operator.add]
 

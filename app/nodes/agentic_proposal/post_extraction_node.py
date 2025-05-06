@@ -8,9 +8,11 @@ from datetime import datetime
 # Your imports
 from app.nodes.states.state_proposal_v1 import StateProposalV1
 from app.storage import pgdb_proposal
+from app.utils.logger import get_logger
 from app.storage.postgre import executeSQL
 from app.utils.insert_technical import insert_technical
 
+logger = get_logger("except_handling_extraction")
 
 class PostExtractionMDNodeV1:
     """
@@ -57,6 +59,7 @@ class PostExtractionMDNodeV1:
         proposal_notice_bid = state.get("result_extraction_notice_bid", {})
         proposal_summary_hsmt = state.get("summary_hsmt", "")
         result_extraction_finance = state.get("result_extraction_finance", [])
+        result_extraction_technology = state["result_extraction_technology"]
         # date_object = datetime.strptime(proposal_overview.release_date, "%d/%m/%Y")
         # formatted_date = date_object.strftime("%Y-%m-%d")
         # Kiểm tra xem tài chính sau khi bóc tách có dữ liệu không
@@ -139,12 +142,17 @@ class PostExtractionMDNodeV1:
         print("inserted experience requirement")
 
         # 5. insert technology
-        if len(state["result_extraction_technology"]) > 0:
-            insert_technical(state["result_extraction_technology"], proposal_id)
+        if len(result_extraction_technology) > 0:
+            insert_technical(result_extraction_technology, proposal_id)
             print("inserted technology requirement")
 
-        print("proposal_id: ", proposal_id)
+        error_messages = state.get("error_messages", [])
+        if len(error_messages) > 0:
+            # Log the error messages
+            for msg in error_messages:
+                logger.error(msg)
         finish_time = time.perf_counter()
+
         print(f"Total time: {finish_time - start_time} s")
         return {
             "proposal_id": proposal_id,
