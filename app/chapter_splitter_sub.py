@@ -212,7 +212,7 @@ def consume_callback(ch, method, properties, body):
                 else:
                     # Tải file từ link trong bảng email contents
                     file_downloaded = download_file_from_minio(
-                        filename=markdown_link)
+                        filename=markdown_link, bucket="markdown")
                     download_path = file_downloaded["download_path"].replace(
                         "\\", "/")
                     # Chia thành các file nhỏ hơn và lưu vào Temp

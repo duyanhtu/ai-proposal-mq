@@ -227,6 +227,11 @@ Text Layout:
 - Keep original line breaks and text alignment
 - Preserve font styles (bold, italic, underline) using markdown
 
+Document Orientation:
+- The document pages may have varying orientations
+- Read the text in its correct orientation regardless of how the image appears
+- Process the content as if the document is properly oriented
+
 Tables:
 - Convert tables to markdown table format
 - Maintain column headers and alignments
@@ -272,10 +277,10 @@ If an image is unclear, indicate this in your output rather than guessing the co
         img = PIL.Image.open(io.BytesIO(pix.tobytes()))
 
         # Add orientation detection and correction
-        img_rot = detect_and_correct_orientation_ho(
-            img, save_debug=debug_mode, page_num=page_num+1)
+        # img_rot = detect_and_correct_orientation_ho(
+        # img, save_debug=debug_mode, page_num=page_num+1)
 
-        img_enhanced = enhance_image(img_rot)
+        img_enhanced = enhance_image(img)
 
         # Add to current batch
         current_batch.append(img_enhanced)
@@ -361,7 +366,6 @@ def detect_and_correct_orientation(img):
 def detect_and_correct_orientation_ho(img, save_debug=False, page_num=None):
     """
     Detect and correct the orientation of an image using HoughLine Transform
-    Supporting multiple rotation angles including 45-degree increments
     :param img: PIL Image
     :param save_debug: Whether to save debug images
     :param page_num: Page number for debug image naming
@@ -381,7 +385,6 @@ def detect_and_correct_orientation_ho(img, save_debug=False, page_num=None):
 
     # Convert PIL to OpenCV format
     img_cv = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
-    height, width = img_cv.shape[:2]
 
     # Convert to grayscale
     gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
@@ -398,10 +401,11 @@ def detect_and_correct_orientation_ho(img, save_debug=False, page_num=None):
         cv2.imwrite(str(debug_dir / edges_name), edges)
 
     # Apply HoughLines transform to detect lines
-    lines = cv2.HoughLines(edges, 1, np.pi/180, threshold=120)
+    lines = cv2.HoughLines(edges, 1, np.pi/180, threshold=150)
 
-    # Initialize angle counters for different orientations
-    angle_counts = {0: 0, 45: 0, 90: 0, 135: 0}
+    # Initialize counters for horizontal and vertical lines
+    horizontal_count = 0
+    vertical_count = 0
 
     if lines is not None:
         for line in lines:
@@ -409,39 +413,19 @@ def detect_and_correct_orientation_ho(img, save_debug=False, page_num=None):
             # Convert radians to degrees
             angle_deg = np.degrees(theta) % 180
 
-            # Classify lines by angle with broader ranges to catch 45° lines
-            if angle_deg < 22.5 or angle_deg > 157.5:
-                angle_counts[0] += 1  # Horizontal (0° or 180°)
-            elif 22.5 <= angle_deg < 67.5:
-                angle_counts[45] += 1  # Diagonal (around 45°)
-            elif 67.5 <= angle_deg < 112.5:
-                angle_counts[90] += 1  # Vertical (around 90°)
-            elif 112.5 <= angle_deg < 157.5:
-                angle_counts[135] += 1  # Diagonal (around 135°)
+            # Classify lines as horizontal or vertical with tolerance
+            # Horizontal lines have angles close to 0° or 180°
+            # Vertical lines have angles close to 90°
+            if angle_deg < 20 or angle_deg > 160:
+                horizontal_count += 1
+            elif 70 < angle_deg < 110:
+                vertical_count += 1
 
     # Save visualization of detected lines for debugging
     if save_debug and lines is not None:
         line_img = img_cv.copy()
-        # Draw lines with different colors based on their angle classification
-        colors = {0: (0, 0, 255),    # Red for horizontal
-                  45: (0, 255, 0),    # Green for 45°
-                  90: (255, 0, 0),    # Blue for vertical
-                  135: (255, 255, 0)}  # Cyan for 135°
-
         for line in lines:
             rho, theta = line[0]
-            angle_deg = np.degrees(theta) % 180
-
-            # Determine line type
-            if angle_deg < 22.5 or angle_deg > 157.5:
-                color = colors[0]
-            elif 22.5 <= angle_deg < 67.5:
-                color = colors[45]
-            elif 67.5 <= angle_deg < 112.5:
-                color = colors[90]
-            else:
-                color = colors[135]
-
             a = np.cos(theta)
             b = np.sin(theta)
             x0 = a * rho
@@ -450,7 +434,7 @@ def detect_and_correct_orientation_ho(img, save_debug=False, page_num=None):
             y1 = int(y0 + 1000 * (a))
             x2 = int(x0 - 1000 * (-b))
             y2 = int(y0 - 1000 * (a))
-            cv2.line(line_img, (x1, y1), (x2, y2), color, 2)
+            cv2.line(line_img, (x1, y1), (x2, y2), (0, 0, 255), 2)
 
         if page_num is not None:
             lines_name = f"page_{page_num}_lines.png"
@@ -458,109 +442,101 @@ def detect_and_correct_orientation_ho(img, save_debug=False, page_num=None):
             lines_name = f"img_lines_{datetime.now().strftime('%H%M%S')}.png"
         cv2.imwrite(str(debug_dir / lines_name), line_img)
 
-    # As a fallback, use morphological operations but with 45° support
+    # As a fallback, use morphological operations (your existing method)
+    # This helps when HoughLines may not detect enough lines
     thresh = cv2.adaptiveThreshold(
         gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
 
-    # Create kernels for different orientations
     horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (20, 1))
     vertical_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 20))
-    # Create diagonal kernels for 45° detection
-    diag45_kernel = np.eye(10, dtype=np.uint8)
-    diag135_kernel = np.flip(diag45_kernel, 0)
 
-    # Detect lines in different orientations
     horizontal_lines = cv2.morphologyEx(
         thresh, cv2.MORPH_OPEN, horizontal_kernel)
     vertical_lines = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, vertical_kernel)
-    diag45_lines = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, diag45_kernel)
-    diag135_lines = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, diag135_kernel)
 
-    # Count non-zero pixels for each orientation
     h_lines = cv2.countNonZero(horizontal_lines)
     v_lines = cv2.countNonZero(vertical_lines)
-    d45_lines = cv2.countNonZero(diag45_lines)
-    d135_lines = cv2.countNonZero(diag135_lines)
 
     # Save morphological operation results for debugging
     if save_debug:
         if page_num is not None:
             morph_h_name = f"page_{page_num}_morph_h.png"
             morph_v_name = f"page_{page_num}_morph_v.png"
-            morph_d45_name = f"page_{page_num}_morph_d45.png"
-            morph_d135_name = f"page_{page_num}_morph_d135.png"
         else:
-            timestamp = datetime.now().strftime('%H%M%S')
-            morph_h_name = f"img_morph_h_{timestamp}.png"
-            morph_v_name = f"img_morph_v_{timestamp}.png"
-            morph_d45_name = f"img_morph_d45_{timestamp}.png"
-            morph_d135_name = f"img_morph_d135_{timestamp}.png"
-
+            morph_h_name = f"img_morph_h_{datetime.now().strftime('%H%M%S')}.png"
+            morph_v_name = f"img_morph_v_{datetime.now().strftime('%H%M%S')}.png"
         cv2.imwrite(str(debug_dir / morph_h_name), horizontal_lines)
         cv2.imwrite(str(debug_dir / morph_v_name), vertical_lines)
-        cv2.imwrite(str(debug_dir / morph_d45_name), diag45_lines)
-        cv2.imwrite(str(debug_dir / morph_d135_name), diag135_lines)
 
     # Determine orientation by combining both methods
-    angle = 0  # Default: no rotation
+    angle = 0
 
-    # Check for document main orientation using angle distributions
-    max_angle = max(angle_counts.items(), key=lambda x: x[1])
-    hough_angle = max_angle[0]
+    # If HoughLines detected enough lines, prioritize it
+    if (horizontal_count + vertical_count) > 10:
+        if horizontal_count > vertical_count * 1.5:  # More horizontal than vertical
+            angle = 0  # Correctly oriented
+        elif vertical_count > horizontal_count * 1.5:  # More vertical than horizontal
+            angle = 90  # Rotated 90 degrees
+    else:
+        # Fall back to morphological method
+        if h_lines > v_lines * 1.5:  # More horizontal than vertical lines
+            angle = 0  # Correctly oriented
+        elif v_lines > h_lines * 1.5:  # More vertical than horizontal lines
+            angle = 90  # Rotated 90 degrees
 
-    # Consider morphological results for diagonal angles
-    morph_max = max([(0, h_lines), (45, d45_lines),
-                    (90, v_lines), (135, d135_lines)], key=lambda x: x[1])
-    morph_angle = morph_max[0]
+    # Try HoughLinesP as a third verification method if no orientation detected
+    if angle == 0 and horizontal_count < 5 and vertical_count < 5:
+        lines_p = cv2.HoughLinesP(
+            edges,
+            rho=1,
+            theta=np.pi/180,
+            threshold=50,
+            minLineLength=50,
+            maxLineGap=10
+        )
 
-    # Log angle distribution for debugging
-    if save_debug:
-        with open(str(debug_dir / f"page_{page_num}_angles.txt"), "w") as f:
-            f.write(f"HoughLines angle counts: {angle_counts}\n")
-            f.write(
-                f"Hough max angle: {hough_angle} with {max_angle[1]} lines\n")
-            f.write(
-                f"Morph counts - H: {h_lines}, V: {v_lines}, D45: {d45_lines}, D135: {d135_lines}\n")
-            f.write(
-                f"Morph max angle: {morph_angle} with {morph_max[1]} pixels\n")
+        h_count_p = 0
+        v_count_p = 0
 
-    # Decide on the rotation angle
-    # For the Vietnamese document example, we want 45° clockwise rotation
-    # Let's support both automatic detection and manual override
+        if lines_p is not None:
+            for line in lines_p:
+                x1, y1, x2, y2 = line[0]
+                # Calculate line angle
+                if x2 - x1 == 0:  # Vertical line
+                    line_angle = 90
+                else:
+                    line_angle = abs(np.degrees(
+                        np.arctan2(y2 - y1, x2 - x1))) % 180
 
-    # For this specific case, force 45° clockwise rotation
-    # In a production environment, you'd want to base this on the detection results
-    angle = -45  # 45° clockwise (negative angle means clockwise in OpenCV)
+                # Classify line orientation
+                if line_angle < 30 or line_angle > 150:
+                    h_count_p += 1
+                elif 60 < line_angle < 120:
+                    v_count_p += 1
 
-    # Alternatively, use detection results:
-    # if angle_counts[45] > angle_counts[0] * 0.7 and angle_counts[45] > angle_counts[90] * 0.7:
-    #     angle = -45  # 45° clockwise
-    # elif angle_counts[135] > angle_counts[0] * 0.7 and angle_counts[135] > angle_counts[90] * 0.7:
-    #     angle = 45  # 45° counter-clockwise
-    # elif angle_counts[90] > angle_counts[0] * 1.3:
-    #     angle = 90  # 90° counter-clockwise
+            # Reassess orientation if HoughLinesP found significant lines
+            if v_count_p > h_count_p * 1.5 and v_count_p > 5:
+                angle = 90
+
+        # Save probabilistic hough lines for debugging
+        if save_debug and lines_p is not None:
+            linesp_img = img_cv.copy()
+            for line in lines_p:
+                x1, y1, x2, y2 = line[0]
+                cv2.line(linesp_img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+
+            if page_num is not None:
+                linesp_name = f"page_{page_num}_linesp.png"
+            else:
+                linesp_name = f"img_linesp_{datetime.now().strftime('%H%M%S')}.png"
+            cv2.imwrite(str(debug_dir / linesp_name), linesp_img)
 
     # Rotate if needed
     if angle != 0:
         height, width = img_cv.shape[:2]
         center = (width // 2, height // 2)
         rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
-
-        # Get rotated dimensions (important for 45° rotations to avoid cropping)
-        cos = np.abs(rotation_matrix[0, 0])
-        sin = np.abs(rotation_matrix[0, 1])
-
-        # Calculate new image dimensions
-        new_width = int((height * sin) + (width * cos))
-        new_height = int((height * cos) + (width * sin))
-
-        # Adjust transformation matrix
-        rotation_matrix[0, 2] += (new_width / 2) - center[0]
-        rotation_matrix[1, 2] += (new_height / 2) - center[1]
-
-        # Perform rotation with adjusted dimensions
-        rotated = cv2.warpAffine(
-            img_cv, rotation_matrix, (new_width, new_height))
+        rotated = cv2.warpAffine(img_cv, rotation_matrix, (width, height))
 
         # Convert back to PIL Image
         result_img = PIL.Image.fromarray(
@@ -569,9 +545,9 @@ def detect_and_correct_orientation_ho(img, save_debug=False, page_num=None):
         # Save rotated image for debugging
         if save_debug:
             if page_num is not None:
-                rotated_name = f"page_{page_num}_rotated_{angle}.png"
+                rotated_name = f"page_{page_num}_rotated.png"
             else:
-                rotated_name = f"img_rotated_{angle}_{datetime.now().strftime('%H%M%S')}.png"
+                rotated_name = f"img_rotated_{datetime.now().strftime('%H%M%S')}.png"
             result_img.save(debug_dir / rotated_name, format="PNG")
 
         return result_img
@@ -609,3 +585,7 @@ def main_test():
         # Save the output
         save_output(content, output_file)
         logger.info(f"Saved results to {output_file}")
+
+
+if __name__ == "__main__":
+    main_test()

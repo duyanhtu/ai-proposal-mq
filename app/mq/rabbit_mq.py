@@ -1,5 +1,6 @@
 import json
 import time
+from typing import Callable
 
 import pika
 from pika.exceptions import AMQPConnectionError, ChannelClosedByBroker
@@ -41,7 +42,7 @@ class RabbitMQClient:
                 host=self.host,
                 port=self.port,
                 credentials=self.credentials,
-                heartbeat=25,  # Heartbeat to detect connection issues
+                heartbeat=60,  # Heartbeat to detect connection issues
                 blocked_connection_timeout=300,  # Timeout for blocked connections
                 connection_attempts=3,  # Attempt reconnection on initial connect
                 retry_delay=5  # Delay between connection attempts
@@ -105,23 +106,47 @@ class RabbitMQClient:
                 logger.error(f"Unexpected error during publish: {e}")
                 raise
 
-    def start_consumer(self, queue, callback):
-        """Bắt đầu consumer, lắng nghe queue với retry logic."""
+    def start_consumer(self, queue, callback: Callable, auto_ack=False):
+        """
+        Bắt đầu consumer, lắng nghe queue với retry logic.
 
+        Args:
+            queue: Tên queue để listen
+            callback: Hàm callback để xử lý message
+            auto_ack: True để tự động acknowledge message, False để manual acknowledge
+                      (Default: False - manual acknowledgment for safety)
+        """
         # Wrap the callback to handle exceptions and acknowledgment
         def wrapped_callback(ch, method, properties, body):
+            message_id = method.delivery_tag
+            logger.debug(f"Processing message {message_id} from {queue}")
+
             try:
-                logger.debug(
-                    f"Processing message from {queue}: {body[:200]}...")
+                # Execute the callback
                 result = callback(ch, method, properties, body)
-                # Explicitly acknowledge the message after successful processing
-                ch.basic_ack(delivery_tag=method.delivery_tag)
+
+                # Only handle manual acknowledgment if auto_ack is False
+                if not auto_ack and ch.is_open:
+                    ch.basic_ack(delivery_tag=method.delivery_tag)
+                    logger.debug(f"Manually acknowledged message {message_id}")
+
                 return result
             except Exception as e:
-                logger.error(f"Error processing message: {e}", exc_info=True)
-                # Decide whether to requeue based on the type of exception
-                # You might want to implement dead-letter handling for permanent failures
-                ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+                logger.error(
+                    f"Error processing message {message_id}: {e}", exc_info=True)
+
+                # Only handle negative acknowledgment if auto_ack is False and channel is open
+                if not auto_ack and ch.is_open:
+                    # Negative acknowledgment - requeue the message if it's a temporary failure
+                    ch.basic_nack(
+                        delivery_tag=method.delivery_tag, requeue=True)
+                    logger.debug(f"Nacked and requeued message {message_id}")
+                elif not ch.is_open:
+                    logger.warning(
+                        f"Channel closed, couldn't handle acknowledgment for message {message_id}")
+
+                # Reraise the exception to trigger reconnection
+                raise
 
         while True:
             try:
@@ -132,17 +157,20 @@ class RabbitMQClient:
                 self.channel.queue_declare(queue=queue, durable=self.durable)
 
                 # Set QoS - only process one message at a time until acknowledged
-                self.channel.basic_qos(prefetch_count=self.prefetch_count)
+                # Only apply prefetch if using manual acknowledgment
+                if not auto_ack:
+                    self.channel.basic_qos(prefetch_count=self.prefetch_count)
 
-                # Start consuming with auto_ack=False to use manual acknowledgment
+                # Start consuming with the specified auto_ack setting
                 self.channel.basic_consume(
                     queue=queue,
                     on_message_callback=wrapped_callback,
-                    auto_ack=False
+                    auto_ack=auto_ack
                 )
 
+                ack_mode = "automatic" if auto_ack else "manual"
                 logger.info(
-                    f"Waiting for messages on {queue}. To exit press CTRL+C")
+                    f"Waiting for messages on {queue} with {ack_mode} acknowledgment. To exit press CTRL+C")
                 self.channel.start_consuming()
 
             except KeyboardInterrupt:
