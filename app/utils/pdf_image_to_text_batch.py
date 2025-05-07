@@ -272,10 +272,10 @@ If an image is unclear, indicate this in your output rather than guessing the co
         img = PIL.Image.open(io.BytesIO(pix.tobytes()))
 
         # Add orientation detection and correction
-        img_rot = detect_and_correct_orientation_ho(
-            img, save_debug=debug_mode, page_num=page_num+1)
+        # img_rot = detect_and_correct_orientation_ho(
+        # img, save_debug=debug_mode, page_num=page_num+1)
 
-        img_enhanced = enhance_image(img_rot)
+        img_enhanced = enhance_image(img)
 
         # Add to current batch
         current_batch.append(img_enhanced)
