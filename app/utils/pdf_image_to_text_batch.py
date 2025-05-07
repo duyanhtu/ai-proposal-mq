@@ -46,14 +46,6 @@ def combine_images_vertically(images, add_separators=True, save_debug=False):
     """
     Combine multiple PIL images vertically into a single image
     while preserving the original resolution of each image
-
-    Args:
-        images: List of PIL Image objects
-        add_separators: Add visual separators between pages
-        save_debug: Whether to save debug images
-
-    Returns:
-        Combined PIL Image or just the single image if only one is provided
     """
     if not images:
         return None
@@ -61,6 +53,41 @@ def combine_images_vertically(images, add_separators=True, save_debug=False):
     # If there's only one image, just return it (no need to combine)
     if len(images) == 1:
         return images[0]
+
+    # Verify all images and ensure RGB color space
+    verified_images = []
+    for i, img in enumerate(images):
+        # Make sure image is not corrupt
+        try:
+            # Convert to RGB (removes transparency issues)
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+
+            # Check if image is mostly black (potential error)
+            img_array = np.array(img)
+            if np.mean(img_array) < 5:  # If mean pixel value is very low
+                logger.warning(
+                    f"Image {i} in batch appears to be mostly black - skipping")
+                continue
+
+            # Verify image dimensions are valid
+            if img.width <= 0 or img.height <= 0:
+                logger.warning(
+                    f"Image {i} has invalid dimensions: {img.width}x{img.height} - skipping")
+                continue
+
+            verified_images.append(img)
+        except Exception as e:
+            logger.error(f"Error verifying image {i}: {str(e)}")
+            continue
+
+    # Exit if no valid images
+    if not verified_images:
+        logger.error("No valid images to combine")
+        return None
+
+    # Use verified images list
+    images = verified_images
 
     # Calculate total width and height
     max_width = max(img.width for img in images)
@@ -79,6 +106,15 @@ def combine_images_vertically(images, add_separators=True, save_debug=False):
     for i, img in enumerate(images):
         # Center image if width is less than max_width
         x_offset = (max_width - img.width) // 2
+
+        # Check if this paste operation would go out of bounds
+        if y_offset + img.height > combined_img.height:
+            logger.warning(
+                f"Image {i} would exceed combined height - adjusting dimensions")
+            combined_img = combined_img.resize(
+                (max_width, y_offset + img.height + 100), Image.LANCZOS)
+
+        # Paste the image
         combined_img.paste(img, (x_offset, y_offset))
         y_offset += img.height
 
@@ -86,6 +122,9 @@ def combine_images_vertically(images, add_separators=True, save_debug=False):
         if add_separators and i < len(images) - 1:
             # Draw a separator line
             for y in range(y_offset, y_offset + separator_height):
+                if y >= combined_img.height:
+                    continue  # Skip if out of bounds
+
                 for x in range(max_width):
                     if y == y_offset or y == y_offset + separator_height - 1:
                         combined_img.putpixel((x, y), (0, 0, 0))  # Black line
@@ -214,6 +253,76 @@ def process_image_batch(images, prompt, batch_size=None, save_debug=False):
     except Exception as e:
         logger.error(f"Error processing batch: {str(e)}")
         return f"[Error processing batch: {str(e)}]"
+
+
+def enhance_table_image(img_pil):
+    """
+    Special enhancement optimized for table images
+    :param img_pil: PIL Image
+    :return: Enhanced PIL Image
+    """
+    # Convert PIL Image to OpenCV format
+    img_cv = cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)
+
+    # Convert to grayscale
+    gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
+
+    # Apply bilateral filter - good for preserving edges while reducing noise
+    filtered = cv2.bilateralFilter(gray, 11, 17, 17)
+
+    # Apply adaptive thresholding to enhance table lines
+    thresh = cv2.adaptiveThreshold(
+        filtered, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv2.THRESH_BINARY, 11, 2
+    )
+
+    # Enhance table grid lines
+    kernel = np.ones((2, 2), np.uint8)
+    morph = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+
+    # Convert back to RGB for Gemini API
+    enhanced_img_cv = cv2.cvtColor(morph, cv2.COLOR_GRAY2RGB)
+    enhanced_img_pil = PIL.Image.fromarray(enhanced_img_cv)
+
+    return enhanced_img_pil
+
+
+def validate_image_for_processing(image, min_content_percent=0):
+    """
+    Validates an image to ensure it has enough actual content before processing
+
+    Args:
+        image: PIL Image
+        min_content_percent: Minimum percentage of non-background pixels
+
+    Returns:
+        (bool, str): (is_valid, reason_if_invalid)
+    """
+    try:
+        # Convert to numpy array for analysis
+        img_array = np.array(image)
+
+        # Check if image is too dark (mostly black)
+        if np.mean(img_array) < 5:
+            return False, "Image is too dark (mostly black)"
+
+        # Check if image is mostly white/blank
+        white_threshold = 245  # Close to white
+        white_pixels = np.sum(img_array.mean(axis=2) > white_threshold)
+        total_pixels = img_array.shape[0] * img_array.shape[1]
+
+        content_percent = 100 - (white_pixels / total_pixels * 100)
+        if content_percent < min_content_percent:
+            return False, f"Image has insufficient content ({content_percent:.1f}% < {min_content_percent}%)"
+
+        # Check dimensions
+        if image.width < 100 or image.height < 100:
+            return False, f"Image dimensions too small: {image.width}x{image.height}"
+
+        return True, "Image is valid"
+
+    except Exception as e:
+        return False, f"Error validating image: {str(e)}"
 
 
 def rotate_table_image(img, debug_mode=False):
@@ -433,8 +542,21 @@ If an image is unclear, indicate this in your output rather than guessing the co
             img_rot.save(rotated_path, format="PNG")
             logger.info(f"Saved rotated image: {rotated_path}")
 
-        # Apply enhancement
+        # After enhancing the image
         img_enhanced = enhance_image(img_rot)
+
+        # Validate before adding to batch
+        is_valid, reason = validate_image_for_processing(img_enhanced)
+        if not is_valid:
+            logger.warning(f"Skipping page {page_num+1} - {reason}")
+            # Save problematic image for inspection
+            if debug_mode:
+                invalid_dir = Path("debug/invalid_images")
+                invalid_dir.mkdir(exist_ok=True, parents=True)
+                invalid_path = invalid_dir / f"invalid_page_{page_num+1}.png"
+                img_enhanced.save(invalid_path)
+                logger.warning(f"Saved invalid image to: {invalid_path}")
+            continue
 
         # Save enhanced image if debug_mode is enabled
         if debug_mode:
@@ -609,235 +731,6 @@ def detect_and_correct_orientation(img, debug_mode=False):
 
         # Convert back to PIL Image
         return PIL.Image.fromarray(cv2.cvtColor(rotated, cv2.COLOR_BGR2RGB))
-
-    return img
-
-
-def detect_and_correct_orientation_ho(img, save_debug=False, page_num=None):
-    """
-    Detect and correct the orientation of an image using HoughLine Transform
-    Supporting multiple rotation angles including 45-degree increments
-    :param img: PIL Image
-    :param save_debug: Whether to save debug images
-    :param page_num: Page number for debug image naming
-    :return: Corrected PIL Image
-    """
-    # Create debug directory if needed
-    if save_debug:
-        debug_dir = Path("debug/orientation")
-        debug_dir.mkdir(exist_ok=True, parents=True)
-
-        # Save original image
-        if page_num is not None:
-            img_name = f"page_{page_num}_original.png"
-        else:
-            img_name = f"img_original_{datetime.now().strftime('%H%M%S')}.png"
-        img.save(debug_dir / img_name, format="PNG")
-
-    # Convert PIL to OpenCV format
-    img_cv = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
-    height, width = img_cv.shape[:2]
-
-    # Convert to grayscale
-    gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
-
-    # Apply edge detection (Canny)
-    edges = cv2.Canny(gray, 50, 150, apertureSize=3)
-
-    # Save edges image for debugging
-    if save_debug:
-        if page_num is not None:
-            edges_name = f"page_{page_num}_edges.png"
-        else:
-            edges_name = f"img_edges_{datetime.now().strftime('%H%M%S')}.png"
-        cv2.imwrite(str(debug_dir / edges_name), edges)
-
-    # Apply HoughLines transform to detect lines
-    lines = cv2.HoughLines(edges, 1, np.pi/180, threshold=120)
-
-    # Initialize angle counters for different orientations
-    angle_counts = {0: 0, 45: 0, 90: 0, 135: 0}
-
-    if lines is not None:
-        for line in lines:
-            rho, theta = line[0]
-            # Convert radians to degrees
-            angle_deg = np.degrees(theta) % 180
-
-            # Classify lines by angle with broader ranges to catch 45° lines
-            if angle_deg < 22.5 or angle_deg > 157.5:
-                angle_counts[0] += 1  # Horizontal (0° or 180°)
-            elif 22.5 <= angle_deg < 67.5:
-                angle_counts[45] += 1  # Diagonal (around 45°)
-            elif 67.5 <= angle_deg < 112.5:
-                angle_counts[90] += 1  # Vertical (around 90°)
-            elif 112.5 <= angle_deg < 157.5:
-                angle_counts[135] += 1  # Diagonal (around 135°)
-
-    # Save visualization of detected lines for debugging
-    if save_debug and lines is not None:
-        line_img = img_cv.copy()
-        # Draw lines with different colors based on their angle classification
-        colors = {0: (0, 0, 255),    # Red for horizontal
-                  45: (0, 255, 0),    # Green for 45°
-                  90: (255, 0, 0),    # Blue for vertical
-                  135: (255, 255, 0)}  # Cyan for 135°
-
-        for line in lines:
-            rho, theta = line[0]
-            angle_deg = np.degrees(theta) % 180
-
-            # Determine line type
-            if angle_deg < 22.5 or angle_deg > 157.5:
-                color = colors[0]
-            elif 22.5 <= angle_deg < 67.5:
-                color = colors[45]
-            elif 67.5 <= angle_deg < 112.5:
-                color = colors[90]
-            else:
-                color = colors[135]
-
-            a = np.cos(theta)
-            b = np.sin(theta)
-            x0 = a * rho
-            y0 = b * rho
-            x1 = int(x0 + 1000 * (-b))
-            y1 = int(y0 + 1000 * (a))
-            x2 = int(x0 - 1000 * (-b))
-            y2 = int(y0 - 1000 * (a))
-            cv2.line(line_img, (x1, y1), (x2, y2), color, 2)
-
-        if page_num is not None:
-            lines_name = f"page_{page_num}_lines.png"
-        else:
-            lines_name = f"img_lines_{datetime.now().strftime('%H%M%S')}.png"
-        cv2.imwrite(str(debug_dir / lines_name), line_img)
-
-    # As a fallback, use morphological operations but with 45° support
-    thresh = cv2.adaptiveThreshold(
-        gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
-
-    # Create kernels for different orientations
-    horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (20, 1))
-    vertical_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 20))
-    # Create diagonal kernels for 45° detection
-    diag45_kernel = np.eye(10, dtype=np.uint8)
-    diag135_kernel = np.flip(diag45_kernel, 0)
-
-    # Detect lines in different orientations
-    horizontal_lines = cv2.morphologyEx(
-        thresh, cv2.MORPH_OPEN, horizontal_kernel)
-    vertical_lines = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, vertical_kernel)
-    diag45_lines = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, diag45_kernel)
-    diag135_lines = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, diag135_kernel)
-
-    # Count non-zero pixels for each orientation
-    h_lines = cv2.countNonZero(horizontal_lines)
-    v_lines = cv2.countNonZero(vertical_lines)
-    d45_lines = cv2.countNonZero(diag45_lines)
-    d135_lines = cv2.countNonZero(diag135_lines)
-
-    # Save morphological operation results for debugging
-    if save_debug:
-        if page_num is not None:
-            morph_h_name = f"page_{page_num}_morph_h.png"
-            morph_v_name = f"page_{page_num}_morph_v.png"
-            morph_d45_name = f"page_{page_num}_morph_d45.png"
-            morph_d135_name = f"page_{page_num}_morph_d135.png"
-        else:
-            timestamp = datetime.now().strftime('%H%M%S')
-            morph_h_name = f"img_morph_h_{timestamp}.png"
-            morph_v_name = f"img_morph_v_{timestamp}.png"
-            morph_d45_name = f"img_morph_d45_{timestamp}.png"
-            morph_d135_name = f"img_morph_d135_{timestamp}.png"
-
-        cv2.imwrite(str(debug_dir / morph_h_name), horizontal_lines)
-        cv2.imwrite(str(debug_dir / morph_v_name), vertical_lines)
-        cv2.imwrite(str(debug_dir / morph_d45_name), diag45_lines)
-        cv2.imwrite(str(debug_dir / morph_d135_name), diag135_lines)
-
-    # Determine orientation by combining both methods
-    angle = 0  # Default: no rotation
-
-    # Check for document main orientation using angle distributions
-    max_angle = max(angle_counts.items(), key=lambda x: x[1])
-    hough_angle = max_angle[0]
-
-    # Consider morphological results for diagonal angles
-    morph_max = max([(0, h_lines), (45, d45_lines),
-                    (90, v_lines), (135, d135_lines)], key=lambda x: x[1])
-    morph_angle = morph_max[0]
-
-    # Log angle distribution for debugging
-    if save_debug:
-        with open(str(debug_dir / f"page_{page_num}_angles.txt"), "w") as f:
-            f.write(f"HoughLines angle counts: {angle_counts}\n")
-            f.write(
-                f"Hough max angle: {hough_angle} with {max_angle[1]} lines\n")
-            f.write(
-                f"Morph counts - H: {h_lines}, V: {v_lines}, D45: {d45_lines}, D135: {d135_lines}\n")
-            f.write(
-                f"Morph max angle: {morph_angle} with {morph_max[1]} pixels\n")
-
-    # Decide on the rotation angle
-    # For the Vietnamese document example, we want 45° clockwise rotation
-    # Let's support both automatic detection and manual override
-
-    # For this specific case, force 45° clockwise rotation
-    # In a production environment, you'd want to base this on the detection results
-    angle = -45  # 45° clockwise (negative angle means clockwise in OpenCV)
-
-    # Alternatively, use detection results:
-    # if angle_counts[45] > angle_counts[0] * 0.7 and angle_counts[45] > angle_counts[90] * 0.7:
-    #     angle = -45  # 45° clockwise
-    # elif angle_counts[135] > angle_counts[0] * 0.7 and angle_counts[135] > angle_counts[90] * 0.7:
-    #     angle = 45  # 45° counter-clockwise
-    # elif angle_counts[90] > angle_counts[0] * 1.3:
-    #     angle = 90  # 90° counter-clockwise
-
-    # Rotate if needed
-    if angle != 0:
-        height, width = img_cv.shape[:2]
-        center = (width // 2, height // 2)
-        rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
-
-        # Get rotated dimensions (important for 45° rotations to avoid cropping)
-        cos = np.abs(rotation_matrix[0, 0])
-        sin = np.abs(rotation_matrix[0, 1])
-
-        # Calculate new image dimensions
-        new_width = int((height * sin) + (width * cos))
-        new_height = int((height * cos) + (width * sin))
-
-        # Adjust transformation matrix
-        rotation_matrix[0, 2] += (new_width / 2) - center[0]
-        rotation_matrix[1, 2] += (new_height / 2) - center[1]
-
-        # Perform rotation with adjusted dimensions
-        rotated = cv2.warpAffine(
-            img_cv, rotation_matrix, (new_width, new_height))
-
-        # Convert back to PIL Image
-        result_img = PIL.Image.fromarray(
-            cv2.cvtColor(rotated, cv2.COLOR_BGR2RGB))
-
-        # Save rotated image for debugging
-        if save_debug:
-            if page_num is not None:
-                rotated_name = f"page_{page_num}_rotated_{angle}.png"
-            else:
-                rotated_name = f"img_rotated_{angle}_{datetime.now().strftime('%H%M%S')}.png"
-            result_img.save(debug_dir / rotated_name, format="PNG")
-
-        return result_img
-
-    # Save final image (if not rotated) for debugging
-    if save_debug:
-        if page_num is not None:
-            final_name = f"page_{page_num}_final.png"
-        else:
-            final_name = f"img_final_{datetime.now().strftime('%H%M%S')}.png"
-        img.save(debug_dir / final_name, format="PNG")
 
     return img
 
