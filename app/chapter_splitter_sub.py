@@ -220,7 +220,7 @@ def consume_callback(ch, method, properties, body):
                     results_processed_chapter = process_file_md(
                         download_path, keyword)
                 # ✅ Chuyển tiếp dữ liệu sang bước tiếp theo: Markdown Queue
-                if results_processed_chapter.length == 0:
+                if len(results_processed_chapter) == 0:
                     # Get sender
                     sql = "SELECT sender FROM email_contents WHERE id = %s"
                     params = (email_content_id)
