@@ -17,7 +17,7 @@ def main():
     """Main function with retry logic for classification service"""
     while True:
         try:
-            logger.info("Starting classification service")
+            logger.info("Starting classification service ")
             classify_sub()
         except Exception as e:
             logger.error(f"Service failed: {str(e)}")
