@@ -45,17 +45,11 @@ def consume_callback(ch, method, properties, body):
         message = json.loads(body.decode('utf-8'))  # Giải mã JSON
         print(f" [x] Received: {message}\n")
         hs_id=message.get("hs_id", "")
-        email_content_id=message.get("email_content_id", "")
         proposal_id=message.get("proposal_id", "")
         subject=message.get("subject", "")
         body=message.get("body", "")
         recipient=message.get("recipient", "")
         attachment_paths=message.get("attachment_paths")
-        sql = "SELECT * from email_contents where id = %s"
-        params = (email_content_id,)
-        email_sql = postgre.selectSQL(sql, params)
-        if not email_sql:
-            return {"status": "error", "message": "Email not found"}
         response = send_email_with_attachments(
             email_address=EnvSettings().GMAIL_ADDRESS,
             app_password=EnvSettings().GMAIL_APP_PASSWORD,
@@ -65,18 +59,23 @@ def consume_callback(ch, method, properties, body):
             attachment_paths=attachment_paths,
         )
         if response["success"]:
-            sql = "UPDATE proposal SET status='EXPORTED' WHERE id=%s"
-            params = (proposal_id,)
-            postgre.executeSQL(sql, params)
+            if proposal_id != "":
+                sql = "UPDATE proposal SET status='EXPORTED' WHERE id=%s"
+                params = (proposal_id,)
+                postgre.executeSQL(sql, params)
 
-            # Update email contents
-            sql12 = "UPDATE email_contents SET status='DA_XU_LY', end_process_date = now() AT TIME ZONE 'UTC' WHERE hs_id=%s"
-            params12 = (email_sql[0]["hs_id"],)
-            postgre.executeSQL(sql12, params12)
-            print(" [v] Email sent successfully")
-            inserted_step_send_mail = postgre.insertHistorySQL(hs_id=hs_id, step="SENT_MAIL")
-            if not inserted_step_send_mail:
-                print("Không insert được trạng thái 'SENT_MAIL' vào history với hs_id: %s", hs_id)
+                # Update email contents
+                sql12 = "UPDATE email_contents SET status='DA_XU_LY', end_process_date = now() AT TIME ZONE 'UTC' WHERE hs_id=%s"
+                params12 = (hs_id,)
+                postgre.executeSQL(sql12, params12)
+                print(" [v] Email sent successfully")
+                inserted_step_send_mail = postgre.insertHistorySQL(hs_id=hs_id, step="SENT_MAIL")
+                if not inserted_step_send_mail:
+                    print("Không insert được trạng thái 'SENT_MAIL' vào history với hs_id: %s", hs_id)
+            else:
+                sql13 = "UPDATE email_contents SET status='XU_LY_LOI', end_process_date = now() AT TIME ZONE 'UTC' WHERE hs_id=%s"
+                params13 = (hs_id,)
+                postgre.executeSQL(sql13, params13)
         # =====================================
         # Xóa các file đã tạo sau khi gửi email
         for file_path in attachment_paths:

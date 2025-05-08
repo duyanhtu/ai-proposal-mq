@@ -188,7 +188,7 @@ class PostExtractionMDNodeV1:
             print("inserted finance requirement")
             # 3. insert into hr requirement and hr detail requirement table
             result_extraction_hr = state["result_extraction_hr"]
-            result_extraction_technology = state["result_extraction_technology"]
+            result_extraction_technology = state.get("result_extraction_technology", {})
             if len(result_extraction_technology.get("hr", [])) > 0:
                 result_extraction_hr = self.merge_hr_requirements(result_extraction_hr, result_extraction_technology.get("hr", []))
                 print(result_extraction_hr)
