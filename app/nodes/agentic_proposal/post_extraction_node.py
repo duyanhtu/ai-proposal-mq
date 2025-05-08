@@ -186,11 +186,12 @@ class PostExtractionMDNodeV1:
             pgdb_proposal.insert_many_finance_requirement(finance_requirements)
             print("inserted finance requirement")
             # 3. insert into hr requirement and hr detail requirement table
-            result_extraction_hr = state["result_extraction_hr"]
+            result_extraction_hr = state.get("result_extraction_hr", [])
             result_extraction_technology = state.get("result_extraction_technology", {})
-            if len(result_extraction_technology) > 0:
-                if result_extraction_technology[0].get("hr") > 0:
-                    result_extraction_hr = self.merge_hr_requirements(result_extraction_hr, result_extraction_technology.get("hr", []))
+            if isinstance(result_extraction_technology, dict):
+                hr_items = result_extraction_technology.get("hr", [])
+                if isinstance(hr_items, list) and len(hr_items) > 0:
+                    result_extraction_hr = self.merge_hr_requirements(result_extraction_hr, hr_items)
             pgdb_proposal.insert_many_hr_requirement(
                 proposal_id, result_extraction_hr
             )
