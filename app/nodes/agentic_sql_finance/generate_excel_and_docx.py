@@ -77,9 +77,6 @@ class GenerateExcelAndDocxNodeV1:
         #     path.replace("\\", "/") for path in temp_file_path
         #     if path and "\\" in str(path)
         # ]
-        inserted_step_generate_excel_reply = postgre.insertHistorySQL(hs_id=hs_id, step="EXTRACTION")
-        if not inserted_step_generate_excel_reply:
-            logger.warning("Không insert được trạng thái 'EXTRACTION' vào history với hs_id: %s", hs_id)
         print("[GENERATE_EXCEL_AND_DOCX_NODE_V1] RESULT: ", temp_file_path_filtered)
         return {
             "temp_file_path": temp_file_path_filtered,
