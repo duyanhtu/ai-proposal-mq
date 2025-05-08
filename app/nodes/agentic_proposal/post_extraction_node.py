@@ -122,7 +122,6 @@ class PostExtractionMDNodeV1:
             proposal_notice_bid = state.get("result_extraction_notice_bid", {})
             proposal_summary_hsmt = state.get("summary_hsmt", "")
             result_extraction_finance = state.get("result_extraction_finance", [])
-            result_extraction_technology = state["result_extraction_technology"]
             # date_object = datetime.strptime(proposal_overview.release_date, "%d/%m/%Y")
             # formatted_date = date_object.strftime("%Y-%m-%d")
             # Kiểm tra xem tài chính sau khi bóc tách có dữ liệu không
@@ -189,9 +188,9 @@ class PostExtractionMDNodeV1:
             # 3. insert into hr requirement and hr detail requirement table
             result_extraction_hr = state["result_extraction_hr"]
             result_extraction_technology = state.get("result_extraction_technology", {})
-            if len(result_extraction_technology.get("hr", [])) > 0:
-                result_extraction_hr = self.merge_hr_requirements(result_extraction_hr, result_extraction_technology.get("hr", []))
-                print(result_extraction_hr)
+            if len(result_extraction_technology) > 0:
+                if result_extraction_technology[0].get("hr") > 0:
+                    result_extraction_hr = self.merge_hr_requirements(result_extraction_hr, result_extraction_technology.get("hr", []))
             pgdb_proposal.insert_many_hr_requirement(
                 proposal_id, result_extraction_hr
             )
