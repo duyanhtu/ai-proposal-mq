@@ -77,6 +77,7 @@ def consume_callback(ch, method, properties, body):
                 file["document_detail_id"], "unknown")
         inputs = {
             "hs_id": hs_id,
+
             "document_file_md": message["files"]
         }
         try:
