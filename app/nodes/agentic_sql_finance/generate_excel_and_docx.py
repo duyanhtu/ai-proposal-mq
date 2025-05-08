@@ -4,6 +4,7 @@ import unicodedata
 from datetime import datetime
 
 from app.nodes.states.state_finance import StateSqlFinance
+from app.storage import postgre
 from app.storage.postgre import executeSQL, selectSQL
 from app.utils.export_doc import convert_md_to_docx, export_docs_from_file
 from app.utils.exporter_v2 import process_excel_file_no_upload_with_compliance
