@@ -136,7 +136,6 @@ def consume_callback(ch, method, properties, body):
         next_message = {
             "hs_id": hs_id,
             "proposal_id": proposal_id,
-            "email_content_id": email_content_id,
             "subject": f"Kết quả phân tích hồ sơ ({email_sql[0].get("hs_id", "")})",
             "body": f"Kính gửi anh chị,\nTrong file đính kèm là kết quả của hệ thống AI xử lý bóc tách yêu cầu tự động cho hồ sơ mời thầu: {res.get("proposal_name", "")}.\nVui lòng kiểm tra lại nội dung tài liệu này để đảm bảo tính chính xác của thông tin.",
             "recipient": email_sql[0].get("sender", ""),
