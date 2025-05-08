@@ -44,6 +44,7 @@ def consume_callback(ch, method, properties, body):
     try:
         message = json.loads(body.decode('utf-8'))  # Giải mã JSON
         print(f" [x] Received: {message}\n")
+        hs_id=message.get("hs_id", "")
         email_content_id=message.get("email_content_id", "")
         proposal_id=message.get("proposal_id", "")
         subject=message.get("subject", "")
@@ -73,12 +74,18 @@ def consume_callback(ch, method, properties, body):
             params12 = (email_sql[0]["hs_id"],)
             postgre.executeSQL(sql12, params12)
             print(" [v] Email sent successfully")
+            inserted_step_send_mail = postgre.insertHistorySQL(hs_id=hs_id, step="SENT_MAIL")
+            if not inserted_step_send_mail:
+                print("Không insert được trạng thái 'SENT_MAIL' vào history với hs_id: %s", hs_id)
         # =====================================
         # Xóa các file đã tạo sau khi gửi email
         for file_path in attachment_paths:
             if file_path and os.path.exists(file_path):
                 os.remove(file_path)
                 print(f"Deleted file: {file_path}")
+        inserted_step_compelete = postgre.insertHistorySQL(hs_id=hs_id, step="COMPELETE")
+        if not inserted_step_compelete:
+            print("Không insert được trạng thái 'COMPELETE' vào history với hs_id: %s", hs_id)
         return {"status": "success", "message": "Thành công"}
     except json.JSONDecodeError:
         print(f" [!] Error: Invalid JSON format: {body}", traceback.format_exc())

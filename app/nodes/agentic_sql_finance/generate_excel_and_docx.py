@@ -4,6 +4,7 @@ import unicodedata
 from datetime import datetime
 
 from app.nodes.states.state_finance import StateSqlFinance
+from app.storage import postgre
 from app.storage.postgre import executeSQL, selectSQL
 from app.utils.export_doc import convert_md_to_docx, export_docs_from_file
 from app.utils.exporter_v2 import process_excel_file_no_upload_with_compliance
@@ -76,6 +77,9 @@ class GenerateExcelAndDocxNodeV1:
         #     path.replace("\\", "/") for path in temp_file_path
         #     if path and "\\" in str(path)
         # ]
+        inserted_step_generate_excel_reply = postgre.insertHistorySQL(hs_id=hs_id, step="EXTRACTION")
+        if not inserted_step_generate_excel_reply:
+            logger.warning("Không insert được trạng thái 'EXTRACTION' vào history với hs_id: %s", hs_id)
         print("[GENERATE_EXCEL_AND_DOCX_NODE_V1] RESULT: ", temp_file_path_filtered)
         return {
             "temp_file_path": temp_file_path_filtered,
