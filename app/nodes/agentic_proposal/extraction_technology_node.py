@@ -878,7 +878,7 @@ class ExtractionTechnologyNodeV1m0p2:
             # Không có chương liên quan để bóc tách
             if len(chapter_content) < 1:
                 return {
-                    "result_extraction_technology": [],
+                    "result_extraction_technology": {},
                 }
             # Load your Markdown file
             markdown_splitter = MarkdownTextSplitter(
@@ -994,7 +994,7 @@ class ExtractionTechnologyNodeV1m0p2:
                 include_trace=True
             )
             return {
-                "result_extraction_technology": [],
+                "result_extraction_technology": {},
                 "error_messages": [error_msg],
             }
 
