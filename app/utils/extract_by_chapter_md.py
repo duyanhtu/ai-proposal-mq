@@ -189,11 +189,11 @@ def extract_chapter_smart(md_path, chapter_num=None, chapter_title=None):
     # Method 1: Look for explicit markdown headings with chapter patterns
     heading_pattern = re.compile(r'^(#{1,3})\s+(.*?)$', re.MULTILINE)
     chapter_pattern = re.compile(
-        r'Chương\s+([0-9IVX]+)(?:[\s\.:\-]+(.*))?', re.IGNORECASE)
+        r'^(Chương|Chapter)\s+([0-9IVX]+)(?:[\s\.:\-]+(.*))?', re.IGNORECASE)
 
     # New pattern for uppercase chapter titles
     uppercase_chapter_pattern = re.compile(
-        r'^CHƯƠNG\s+([0-9IVX]+)', re.MULTILINE)
+        r'^(CHƯƠNG|CHAPTER)\s+([0-9IVX]+)', re.MULTILINE)
 
     chapter_candidates = []
 
@@ -215,9 +215,9 @@ def extract_chapter_smart(md_path, chapter_num=None, chapter_title=None):
 
                 # Extract the actual chapter title (text after chapter number)
                 chapter_num_value = chapter_match.group(
-                    1)  # Renamed this variable
+                    2)  # Updated group index
                 chapter_title_text = chapter_match.group(
-                    2) if chapter_match.group(2) else ""
+                    3) if chapter_match.group(3) else ""
                 chapter_title_text = chapter_title_text.strip()
 
                 # Check if the chapter title part is uppercase
@@ -240,7 +240,7 @@ def extract_chapter_smart(md_path, chapter_num=None, chapter_title=None):
                 })
 
         # Method 2: Check for chapter patterns without markdown headings
-        elif chapter_pattern.search(line):
+        elif re.match(r'^(Chương|Chapter)\s+([0-9IVX]+)', line, re.IGNORECASE):
             # Look for special formatting indicators
             is_capitalized = line.upper() == line
             # Indentation as centering proxy
@@ -250,9 +250,9 @@ def extract_chapter_smart(md_path, chapter_num=None, chapter_title=None):
 
             # Extract the chapter title part
             chapter_match = chapter_pattern.search(line)
-            chapter_num_value = chapter_match.group(1)  # Renamed this variable
+            chapter_num_value = chapter_match.group(2)  # Updated group index
             chapter_title_text = chapter_match.group(
-                2) if chapter_match.group(2) else ""
+                3) if chapter_match.group(3) else ""
             chapter_title_text = chapter_title_text.strip()
 
             # Check if the chapter title part is uppercase

@@ -477,6 +477,9 @@ Tables:
 
 Structure:
 - Maintain document hierarchy (titles, headings, subheadings)
+- Ensure all headings retain their exact original styling (bold, italic, size emphasis)
+- Use appropriate markdown heading levels (# ## ###) based on visual hierarchy
+- Match heading font weights and styles precisely using additional markdown formatting
 - Preserve bullet points and numbered lists
 - Keep footnotes and references in their original format
 - Retain any special characters or symbols
