@@ -37,6 +37,7 @@ RABBIT_MQ_USER = EnvSettings().RABBIT_MQ_USER
 RABBIT_MQ_PASS = EnvSettings().RABBIT_MQ_PASS
 RABBIT_MQ_CHPATER_SPLITER_QUEUE = EnvSettings().RABBIT_MQ_CHPATER_SPLITER_QUEUE
 RABBIT_MQ_MARKDOWN_QUEUE = EnvSettings().RABBIT_MQ_MARKDOWN_QUEUE
+RABBIT_MQ_SEND_MAIL_QUEUE = EnvSettings().RABBIT_MQ_SEND_MAIL_QUEUE
 # Khởi tạo RabbitMQClient dùng chung
 rabbit_mq = RabbitMQClient(
     host=RABBIT_MQ_HOST,
@@ -219,6 +220,29 @@ def consume_callback(ch, method, properties, body):
                     results_processed_chapter = process_file_md(
                         download_path, keyword)
                 # ✅ Chuyển tiếp dữ liệu sang bước tiếp theo: Markdown Queue
+                if results_processed_chapter.length == 0:
+                    # Get sender
+                    sql = "SELECT sender FROM email_contents WHERE id = %s"
+                    params = (email_content_id)
+                    email_sql = postgre.selectSQL(sql, params)
+                    if not email_sql:
+                        logger.error(
+                            f" [!] Không tìm thấy email_content_id: {email_content_id}")
+                        return
+
+                    rabbit_mq.publish(
+                        queue=RABBIT_MQ_SEND_MAIL_QUEUE,
+                        message={
+                            "hs_id": email_content_id,
+                            "proposal_id": "",
+                            "subject": f"Kết quả phân tích hồ sơ ({email_content_id})",
+                            "body": "Kính gửi anh chị,\nHiện tại hệ thống không thể xử lý hồ sơ mời thầu này.",
+                            "recipient": email_sql[0]
+                        },
+                    )
+
+                    return
+
                 for rpc in results_processed_chapter:
                     if keyword.lower() in rpc["name"].lower():
                         # file_path_fixed = result["path"].replace("\\", "/").split("/")[-1]
