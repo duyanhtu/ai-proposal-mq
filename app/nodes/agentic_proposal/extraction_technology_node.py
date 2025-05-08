@@ -1,7 +1,5 @@
 # Standard imports
-import json
 import re
-import os
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -9,6 +7,7 @@ from pathlib import Path
 # Third party imports
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_text_splitters import MarkdownTextSplitter
+
 # Your imports
 from app.model_ai import llm
 from app.nodes.agentic_proposal.extraction_handle_error import format_error_message
@@ -16,6 +15,7 @@ from app.nodes.states.state_proposal_v1 import StateProposalV1
 from app.utils.logger import get_logger
 
 logger = get_logger("except_handling_extraction")
+
 
 class ExtractionTechnologyMDNodeV1m0p0:
     """
@@ -284,7 +284,8 @@ Return only the JSON in this format:
             {content}
         """
 
-        chat_prompt_template = ChatPromptTemplate.from_template(prompt_template)
+        chat_prompt_template = ChatPromptTemplate.from_template(
+            prompt_template)
 
         prompt = chat_prompt_template.invoke({"content": chapter_content})
 
@@ -294,10 +295,10 @@ Return only the JSON in this format:
             .invoke(prompt)
         )
         if "response" in response and isinstance(response["response"], list):
-          data = response["response"]
-        else: 
-          data = response
-        print("TECHNOLOGY: ",data)
+            data = response["response"]
+        else:
+            data = response
+        print("TECHNOLOGY: ", data)
         finish_time = time.perf_counter()
         print(f"Total time: {finish_time - start_time} s")
         return {"result_extraction_technology": data}
@@ -861,10 +862,12 @@ Return only the JSON in this format:
             exported_files.append(str(full_path))
         return exported_files
 
+
 class ExtractionTechnologyNodeV1m0p2:
     """
         ExtractionTechnologyNodeV1m0p2
     """
+
     def __init__(self, name: str):
         self.name = name
 
@@ -884,9 +887,11 @@ class ExtractionTechnologyNodeV1m0p2:
                 keep_separator=False
             )
             chunks = markdown_splitter.split_text(chapter_content)
+
             def process_chunk(chunk, chunk_index):
                 print(f"Processing chunk {chunk_index+1}/{len(chunks)}")
-                chat_prompt_template = ChatPromptTemplate.from_template(self._get_prompt_template())
+                chat_prompt_template = ChatPromptTemplate.from_template(
+                    self._get_prompt_template())
                 prompt = chat_prompt_template.invoke({"content": chunk})
                 try:
                     response = llm.chat_model_gpt_4o_mini_16k().with_structured_output(
@@ -900,12 +905,13 @@ class ExtractionTechnologyNodeV1m0p2:
                     print(f"Error processing chunk {chunk_index+1}: {str(e)}")
                     return []
 
-            max_workers = min(8, len(chunks))
+            # max_workers = min(8, len(chunks))
+            max_workers = 1
             all_results = []
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
                 # Create a MarkdownTextSplitter
                 futures = [executor.submit(process_chunk, chunk, i)
-                            for i, chunk in enumerate(chunks)]
+                           for i, chunk in enumerate(chunks)]
                 for future in futures:
                     chunk_results = future.result()
                     all_results.extend(chunk_results)
@@ -963,13 +969,16 @@ class ExtractionTechnologyNodeV1m0p2:
 
                 # Gộp sub_requirements
                 if "requirement_level_0" in item:
-                    sub_reqs = item["requirement_level_0"].get("sub_requirements", [])
+                    sub_reqs = item["requirement_level_0"].get(
+                        "sub_requirements", [])
                     for sub_req in sub_reqs:
                         # Kiểm tra trùng lặp dựa trên muc của requirement_level_1
-                        sub_muc = sub_req.get("requirement_level_1", {}).get("muc", "")
+                        sub_muc = sub_req.get(
+                            "requirement_level_1", {}).get("muc", "")
                         if sub_muc and sub_muc not in sub_req_muc_seen:
                             sub_req_muc_seen.add(sub_muc)
-                            merged["requirement_level_0"]["sub_requirements"].append(sub_req)
+                            merged["requirement_level_0"]["sub_requirements"].append(
+                                sub_req)
 
             # Sắp xếp để đảm bảo đầu ra nhất quán
             merged["hr"].sort(key=lambda x: x["position"])
@@ -981,14 +990,14 @@ class ExtractionTechnologyNodeV1m0p2:
             error_msg = format_error_message(
                 node_name=self.name,
                 e=e,
-                context=f"hs_id: {state.get('hs_id', '')}", 
+                context=f"hs_id: {state.get('hs_id', '')}",
                 include_trace=True
             )
             return {
                 "result_extraction_technology": [],
                 "error_messages": [error_msg],
             }
-    
+
     def _get_prompt_template(self):
         """Return the prompt template for extraction"""
         return """
