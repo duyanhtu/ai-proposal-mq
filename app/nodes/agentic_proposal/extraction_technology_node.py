@@ -872,7 +872,6 @@ class ExtractionTechnologyNodeV1m0p2:
         print(self.name)
         try:
             chapter_content = state["document_content_markdown_hskt"]
-
             # Không có chương liên quan để bóc tách
             if len(chapter_content) < 1:
                 return {
@@ -889,11 +888,9 @@ class ExtractionTechnologyNodeV1m0p2:
                 print(f"Processing chunk {chunk_index+1}/{len(chunks)}")
                 chat_prompt_template = ChatPromptTemplate.from_template(self._get_prompt_template())
                 prompt = chat_prompt_template.invoke({"content": chunk})
-
                 try:
                     response = llm.chat_model_gpt_4o_mini_16k().with_structured_output(
                         None, method="json_mode").invoke(prompt)
-
                     if isinstance(response, list):
                         return response
                     elif isinstance(response, dict) and response:
@@ -994,11 +991,11 @@ class ExtractionTechnologyNodeV1m0p2:
     
     def _get_prompt_template(self):
         """Return the prompt template for extraction"""
-        # Your existing prompt template here
         return """
-           Bạn là một chuyên gia trích xuất các yêu cầu của hồ sơ mời thầu.
-            Hãy lấy tất cả các yêu cầu về kỹ thuật và các yêu cầu khác trong file được cung cấp.
+            Bạn là một chuyên gia trích xuất các yêu cầu của hồ sơ mời thầu.
+            Hãy lấy tất cả các yêu cầu liên quan đến nhân sự và các yêu cầu còn lại bao gồm: yêu cầu kỹ thuật và các yêu cầu khác không liên quan đến nhân sự trong file được cung cấp.
             **CHÚ Ý:** PHẢI lấy đầy đủ nội dung yêu cầu và mô tả chi tiết yêu cầu trong tài liệu theo dữ liệu gốc.
+                    Nếu trong file không có yêu cầu liên quan đến nhân sự thì để trống phần nhân sự.
                     Không lấy các thông tin về giới thiệu chung về gói thầu.
                     KHông lấy thông tin phạm vi gói thầu
                     KHÔNG tách nội dung mô tả để làm yêu cầu
@@ -1016,87 +1013,161 @@ class ExtractionTechnologyNodeV1m0p2:
             7. Đầu ra hãy trả về dạng JSON.
  
             **Ví dụ**
-    Ví dụ 1: có input như sau:
-    **3.3Yêu cầu nội dung công việc bảo trì**
-      3.3.1 Yêu cầu chung
+            Ví dụ 1: có input như sau:
+            **3.3 Yêu cầu nội dung công việc bảo trì**
+            3.3.1 Yêu cầu chung
 
-        -Kiểm tra, bảo trì định kỳ: Trong thời gian bảo trì, định kỳ tối thiểu 03 tháng/01 lần (hoặc ngay khi có yêu cầu của Agribank) thực hiện kiểm tra, bảo dưỡng định kỳ cho các thiết bị thuộc phạm vi bảo trì, rà soát cấu hình, đánh giá hiệu năng sử dụng, đưa ra các khuyến nghị để tối ưu thiết bị (nếu có).
+                -Kiểm tra, bảo trì định kỳ: Trong thời gian bảo trì, định kỳ tối thiểu 03 tháng/01 lần (hoặc ngay khi có yêu cầu của Agribank) thực hiện kiểm tra, bảo dưỡng định kỳ cho các thiết bị thuộc phạm vi bảo trì, rà soát cấu hình, đánh giá hiệu năng sử dụng, đưa ra các khuyến nghị để tối ưu thiết bị (nếu có).
 
-        - Hỗ trợ kỹ thuật và xử lý, khắc phục sự cố: Trong thời gian bảo trì, đơn vị cung cấp dịch vụ bảo trì phải cung cấp dịch vụ hỗ trợ kỹ thuật và khắc phục sự cố thiết bị. Khi có yêu cầu hỗ trợ kỹ thuật của Agribank hoặc khi thiết bị có sự cố, đơn vị cung cấp dịch vụ bảo trì có trách nhiệm hỗ trợ kỹ thuật và xử lý, khắc phục sự cố; trường hợp cần thiết đơn vị cung cấp dịch vụ bảo trì phải cử cán bộ trực tiếp tới địa điểm lắp đặt thiết bị hoặc yêu cầu hỗ trợ trợ kỹ thuật của hãng sản xuất để xử lý và khắc phục sự cố trong thời gian sớm nhất.
-        - Cập nhật phần mềm hệ điều hành và phần mềm an ninh phòng chống tấn công xâm nhập (IPS) của thiết bị: Trong thời gian bảo trì, các thiết bị phải được thường xuyên, liên tục cập nhập phần mềm hệ điều hành thiết bị, bản vá lỗi, phần mềm an ninh phòng chống tấn công xâm nhập và các mẫu tấn công xâm nhập mới theo tiêu chuẩn của hãng sản xuất. Căn cứ các khuyến nghị/khuyến cáo của hãng sản
+                - Hỗ trợ kỹ thuật và xử lý, khắc phục sự cố: Trong thời gian bảo trì, đơn vị cung cấp dịch vụ bảo trì phải cung cấp dịch vụ hỗ trợ kỹ thuật và khắc phục sự cố thiết bị. Khi có yêu cầu hỗ trợ kỹ thuật của Agribank hoặc khi thiết bị có sự cố, đơn vị cung cấp dịch vụ bảo trì có trách nhiệm hỗ trợ kỹ thuật và xử lý, khắc phục sự cố; trường hợp cần thiết đơn vị cung cấp dịch vụ bảo trì phải cử cán bộ trực tiếp tới địa điểm lắp đặt thiết bị hoặc yêu cầu hỗ trợ trợ kỹ thuật của hãng sản xuất để xử lý và khắc phục sự cố trong thời gian sớm nhất.
+                - Cập nhật phần mềm hệ điều hành và phần mềm an ninh phòng chống tấn công xâm nhập (IPS) của thiết bị: Trong thời gian bảo trì, các thiết bị phải được thường xuyên, liên tục cập nhập phần mềm hệ điều hành thiết bị, bản vá lỗi, phần mềm an ninh phòng chống tấn công xâm nhập và các mẫu tấn công xâm nhập mới theo tiêu chuẩn của hãng sản xuất. Căn cứ các khuyến nghị/khuyến cáo của hãng sản
 
-        3
+                3
 
-        xuất, yêu cầu của Agribank, đơn vị cung cấp phải chủ động tiến hành phân tích, lên kế hoạch để nâng cấp, cập nhật kịp thời nhằm giúp các thiết bị tường lửa hoạt động an toàn, ổn định, ngăn ngừa các lỗi và sự cố ảnh hưởng đến hoạt động hệ thống mạng.
-Output mong muốn như sau:
-[
-    "requirement_level_0": {{
-        "muc": "3",
-        "requirement_name": "Yêu cầu về kỹ thuật",
-        "sub_requirements": [
+                xuất, yêu cầu của Agribank, đơn vị cung cấp phải chủ động tiến hành phân tích, lên kế hoạch để nâng cấp, cập nhật kịp thời nhằm giúp các thiết bị tường lửa hoạt động an toàn, ổn định, ngăn ngừa các lỗi và sự cố ảnh hưởng đến hoạt động hệ thống mạng.
+            Output mong muốn như sau:
+            [
+                {{	"hr": [             
+                    ]
+                }},
+                
+                    {{ "requirement_level_0": {{
+                        "muc": "3",
+                        "requirement_name": "Yêu cầu về kỹ thuật",
+                        "sub_requirements": [
+                            {{
+                                "requirement_level_1": {{
+                                    "muc": "3.3",
+                                    "requirement_name": "Yêu cầu nội dung công việc bảo trì",
+                                    "sub_requirements": [
+                                        {{
+                                            "requirement_level_2": {{
+                                                "muc": "3.3.1",
+                                                "requirement_name": "Yêu cầu chung",
+                                                "description": [
+                                                    {{
+                                                        "description_detail": "Kiểm tra, bảo trì định kỳ: Trong thời gian bảo trì, định kỳ tối thiểu 03 tháng/01 lần (hoặc ngay khi có yêu cầu của Agribank) thực hiện kiểm tra, bảo dưỡng định kỳ cho các thiết bị thuộc phạm vi bảo trì, rà soát cấu hình, đánh giá hiệu năng sử dụng, đưa ra các khuyến nghị để tối ưu thiết bị (nếu có)."
+                                                    }},
+                                                    {{
+                                                        "description_detail": "Hỗ trợ kỹ thuật và xử lý, khắc phục sự cố: Trong thời gian bảo trì, đơn vị cung cấp dịch vụ bảo trì phải cung cấp dịch vụ hỗ trợ kỹ thuật và khắc phục sự cố thiết bị. Khi có yêu cầu hỗ trợ kỹ thuật của Agribank hoặc khi thiết bị có sự cố, đơn vị cung cấp dịch vụ bảo trì có trách nhiệm hỗ trợ kỹ thuật và xử lý, khắc phục sự cố; trường hợp cần thiết đơn vị cung cấp dịch vụ bảo trì phải cử cán bộ trực tiếp tới địa điểm lắp đặt thiết bị hoặc yêu cầu hỗ trợ trợ kỹ thuật của hãng sản xuất để xử lý và khắc phục sự cố trong thời gian sớm nhất."
+                                                    }},
+                                                    {{
+                                                        "description_detail": "Cập nhật phần mềm hệ điều hành và phần mềm an ninh phòng chống tấn công xâm nhập (IPS) của thiết bị: Trong thời gian bảo trì, các thiết bị phải được thường xuyên, liên tục cập nhập phần mềm hệ điều hành thiết bị, bản vá lỗi, phần mềm an ninh phòng chống tấn công xâm nhập và các mẫu tấn công xâm nhập mới theo tiêu chuẩn của hãng sản xuất. Căn cứ các khuyến nghị/khuyến cáo của hãng sản xuất, yêu cầu của Agribank, đơn vị cung cấp phải chủ động tiến hành phân tích, lên kế hoạch để nâng cấp, cập nhật kịp thời nhằm giúp các thiết bị tường lửa hoạt động an toàn, ổn định, ngăn ngừa các lỗi và sự cố ảnh hưởng đến hoạt động hệ thống mạng."
+                                                    }}
+                                                ]
+                                            }}
+                                        }},
+                                        {{
+                                            "requirement_level_2": {{
+                                                "muc": "3.3.2",
+                                                "requirement_name": "Yêu cầu về công việc kiểm tra, bảo trì định kỳ",
+                                                "sub_requirements": [
+                                                    {{
+                                                        "requirement_level_3": {{
+                                                            "muc": "a",
+                                                            "requirement_name": "Kiểm tra, vệ sinh thiết bị",
+                                                            "description": [
+                                                                {{
+                                                                    "description_detail": "Kiểm tra môi trường hoạt động của thiết bị, nguồn điện, nhiệt độ."
+                                                                }},
+                                                                {{
+                                                                    "description_detail": "Kiểm tra dây cáp, đầu kết nối mạng. Sắp xếp gọn gàng và cố định các dây cáp kết nối mạng trên thiết bị."
+                                                                }},
+                                                                {{
+                                                                    "description_detail": "Thực hiện bảo dưỡng, vệ sinh thiết bị, nguồn, cổng kết nối, module SFP."
+                                                                }}
+                                                            ]
+                                                        }}
+                                                    }},
+                                                    {{
+                                                        "requirement_level_3": {{
+                                                            "muc": "b",
+                                                            "requirement_name": "Kiểm tra hoạt động, cấu hình và chính sách an ninh của thiết bị",
+                                                            "description": [
+                                                                {{
+                                                                    "description_detail": "Kiểm tra hiệu năng hoạt động của thiết bị: khả năng đáp ứng tài nguyên của bộ vi xử lý (CPU) và bộ nhớ (RAM)."
+                                                                }}
+                                                            ]
+                                                        }}
+                                                    }},
+                                                    {{
+                                                        "requirement_level_3": {{
+                                                            "muc": "c",
+                                                            "requirement_name": "Tối ưu cấu hình và chính sách an ninh mạng trên thiết bị",
+                                                            "description": [
+                                                                {{
+                                                                    "description_detail": "Rà soát các cấu hình và chính sách an ninh mạng được thiết lập trên thiết bị."
+                                                                }}
+                                                            ]
+                                                        }}
+                                                    }}
+                                                ]
+                                            }}
+                                        }}
+                                    ]
+                                }}
+                            }}
+                        ]
+                    }}
+
+            ]
+            ví dụ 2: 
+            OUTPUT NHƯ SAU:
+            {{	"hr": [             
+                    ]
+            }},
             {{
-                "requirement_level_1": {{
-                    "muc": "3.3",
-                    "requirement_name": "Yêu cầu nội dung công việc bảo trì",
+                "requirement_level_0": {{
+                    "muc": "1.",
+                    "requirement_name": "Yêu cầu về kỹ thuật",
                     "sub_requirements": [
                         {{
-                            "requirement_level_2": {{
-                                "muc": "3.3.1",
-                                "requirement_name": "Yêu cầu chung",
-                                "description": [
-                                    {{
-                                        "description_detail": "Kiểm tra, bảo trì định kỳ: Trong thời gian bảo trì, định kỳ tối thiểu 03 tháng/01 lần (hoặc ngay khi có yêu cầu của Agribank) thực hiện kiểm tra, bảo dưỡng định kỳ cho các thiết bị thuộc phạm vi bảo trì, rà soát cấu hình, đánh giá hiệu năng sử dụng, đưa ra các khuyến nghị để tối ưu thiết bị (nếu có)."
-                                    }},
-                                    {{
-                                        "description_detail": "Hỗ trợ kỹ thuật và xử lý, khắc phục sự cố: Trong thời gian bảo trì, đơn vị cung cấp dịch vụ bảo trì phải cung cấp dịch vụ hỗ trợ kỹ thuật và khắc phục sự cố thiết bị. Khi có yêu cầu hỗ trợ kỹ thuật của Agribank hoặc khi thiết bị có sự cố, đơn vị cung cấp dịch vụ bảo trì có trách nhiệm hỗ trợ kỹ thuật và xử lý, khắc phục sự cố; trường hợp cần thiết đơn vị cung cấp dịch vụ bảo trì phải cử cán bộ trực tiếp tới địa điểm lắp đặt thiết bị hoặc yêu cầu hỗ trợ trợ kỹ thuật của hãng sản xuất để xử lý và khắc phục sự cố trong thời gian sớm nhất."
-                                    }},
-                                    {{
-                                        "description_detail": "Cập nhật phần mềm hệ điều hành và phần mềm an ninh phòng chống tấn công xâm nhập (IPS) của thiết bị: Trong thời gian bảo trì, các thiết bị phải được thường xuyên, liên tục cập nhập phần mềm hệ điều hành thiết bị, bản vá lỗi, phần mềm an ninh phòng chống tấn công xâm nhập và các mẫu tấn công xâm nhập mới theo tiêu chuẩn của hãng sản xuất. Căn cứ các khuyến nghị/khuyến cáo của hãng sản xuất, yêu cầu của Agribank, đơn vị cung cấp phải chủ động tiến hành phân tích, lên kế hoạch để nâng cấp, cập nhật kịp thời nhằm giúp các thiết bị tường lửa hoạt động an toàn, ổn định, ngăn ngừa các lỗi và sự cố ảnh hưởng đến hoạt động hệ thống mạng."
-                                    }}
-                                ]
-                            }}
-                        }},
-                        {{
-                            "requirement_level_2": {{
-                                "muc": "3.3.2",
-                                "requirement_name": "Yêu cầu về công việc kiểm tra, bảo trì định kỳ",
+                            "requirement_level_1": {{
+                                "muc": "1.2.",
+                                "requirement_name": "Yêu cầu về kỹ thuật",
                                 "sub_requirements": [
                                     {{
-                                        "requirement_level_3": {{
-                                            "muc": "a",
-                                            "requirement_name": "Kiểm tra, vệ sinh thiết bị",
+                                        "requirement_level_2": {{
+                                            "muc": "1",
+                                            "requirement_name": "Bản quyền phần mềm Microsoft Office LTSC Standard 2021",
                                             "description": [
                                                 {{
-                                                    "description_detail": "Kiểm tra môi trường hoạt động của thiết bị, nguồn điện, nhiệt độ."
+                                                    "description_detail": "Đảm bảo tương thích với hệ điều hành Windows 10, Windows 11"
                                                 }},
                                                 {{
-                                                    "description_detail": "Kiểm tra dây cáp, đầu kết nối mạng. Sắp xếp gọn gàng và cố định các dây cáp kết nối mạng trên thiết bị."
+                                                    "description_detail": "Bao gồm các ứng dụng cơ bản như Word, Excel, PowerPoint và Outlook."
+                                                }}
+                                            ]
+                                        }}
+                                    }}
+                                ]
+                            }},
+                            "requirement_level_1": {{
+                                "muc": "1.3.",
+                                "requirement_name": "Các yêu cầu khác",
+                                "sub_requirements": [
+                                    {{
+                                        "requirement_level_2": {{
+                                            "muc": "1.3.1",
+                                            "requirement_name": "Yêu cầu về Bản quyền",
+                                            "description": [
+                                                {{
+                                                    "description_detail": "- Hàng hóa cung cấp mới 100% chưa qua sử dụng"
                                                 }},
                                                 {{
-                                                    "description_detail": "Thực hiện bảo dưỡng, vệ sinh thiết bị, nguồn, cổng kết nối, module SFP."
+                                                    "description_detail": "- Có Giấy phép hoặc giấy ủy quyền bán hàng của nhà sản xuất, đại lý phân phối hoặc giấy chứng nhận quan hệ đối tác hoặc tài liệu khác có giá trị tương đương."
                                                 }}
                                             ]
                                         }}
                                     }},
                                     {{
-                                        "requirement_level_3": {{
-                                            "muc": "b",
-                                            "requirement_name": "Kiểm tra hoạt động, cấu hình và chính sách an ninh của thiết bị",
+                                        "requirement_level_2": {{
+                                            "muc": "1.3.2",
+                                            "requirement_name": "Yêu cầu về bảo hành, hỗ trợ kỹ thuật",
                                             "description": [
                                                 {{
-                                                    "description_detail": "Kiểm tra hiệu năng hoạt động của thiết bị: khả năng đáp ứng tài nguyên của bộ vi xử lý (CPU) và bộ nhớ (RAM)."
-                                                }}
-                                            ]
-                                        }}
-                                    }},
-                                    {{
-                                        "requirement_level_3": {{
-                                            "muc": "c",
-                                            "requirement_name": "Tối ưu cấu hình và chính sách an ninh mạng trên thiết bị",
-                                            "description": [
-                                                {{
-                                                    "description_detail": "Rà soát các cấu hình và chính sách an ninh mạng được thiết lập trên thiết bị."
-                                                }}
+                                                    "description_detail": "Nhà thầu phải có văn phòng hoặc cơ sở tại Hà Nội "
+                                                }},
                                             ]
                                         }}
                                     }}
@@ -1106,97 +1177,50 @@ Output mong muốn như sau:
                     ]
                 }}
             }}
-        ]
-    }}
-]
-ví dụ 2: 
-OUTPUT NHƯ SAU:
-{{
-	"requirement_level_0": {{
-		"muc": "1.",
-		"requirement_name": "Yêu cầu về kỹ thuật",
-		"sub_requirements": [
-			{{
-				"requirement_level_1": {{
-					"muc": "1.2.",
-					"requirement_name": "Yêu cầu về kỹ thuật",
-					"sub_requirements": [
-						{{
-							"requirement_level_2": {{
-								"muc": "1",
-								"requirement_name": "Bản quyền phần mềm Microsoft Office LTSC Standard 2021",
-								"description": [
-									{{
-										"description_detail": "Đảm bảo tương thích với hệ điều hành Windows 10, Windows 11"
-									}},
-									{{
-										"description_detail": "Bao gồm các ứng dụng cơ bản như Word, Excel, PowerPoint và Outlook."
-									}}
-								]
-							}}
-						}}
-					]
-				}},
-				"requirement_level_1": {{
-					"muc": "1.3.",
-					"requirement_name": "Các yêu cầu khác",
-					"sub_requirements": [
-						{{
-							"requirement_level_2": {{
-								"muc": "1.3.1",
-								"requirement_name": "Yêu cầu về Bản quyền",
-								"description": [
-									{{
-										"description_detail": "- Hàng hóa cung cấp mới 100% chưa qua sử dụng"
-									}},
-									{{
-										"description_detail": "- Có Giấy phép hoặc giấy ủy quyền bán hàng của nhà sản xuất, đại lý phân phối hoặc giấy chứng nhận quan hệ đối tác hoặc tài liệu khác có giá trị tương đương."
-									}}
-								]
-							}}
-						}},
-						{{
-							"requirement_level_2": {{
-								"muc": "1.3.2",
-								"requirement_name": "Yêu cầu về bảo hành, hỗ trợ kỹ thuật",
-								"description": [
-									{{
-										"description_detail": "Nhà thầu phải có văn phòng hoặc cơ sở tại Hà Nội "
-									}},
-								]
-							}}
-						}}
-					]
-				}}
-			}}
-		]
-	}}
-}}
 
-Return only the JSON in this format:
-           
-[
-    {{
-        "requirement_level_0": {{
-            "muc": "số chỉ mục",
-            "requirement_name": "Yêu cầu kỹ thuật",
-            "sub_requirements": [
-                {{
-                    "requirement_level_1": {{
-                        "muc": "số chỉ mục",
-                        "requirement_name": "tên yêu cầu là các yêu cầu trong phạm vi mô tả ở trên có level nhỏ hơn level 0",
+            ví dụ 3:
+                
+                {{	"hr": [
+                        {{
+                            "position": "Trưởng nhóm triển khai",
+                            "quantity": "1",
+                            "requirements": [
+                                {{
+                                    "name": "",
+                                    "description": "- Tối thiểu 03 năm hoặc tối thiểu 01 hợp đồng."
+                                }},
+                                {{
+                                    "name": "",
+                                    "description": "- Tốt nghiệp Đại học chuyên ngành Công nghệ thông tin, An toàn thông tin hoặc Điện tử viễn thông, Điện tử truyền thông."
+                                }},
+                                {{
+                                    "name": "",
+                                    "description": "- Có chứng nhận hoặc chứng chỉ chứng minh đã được đào tạo về sản phẩm chào thầu"
+                                }}					
+                            ]                
+                        }}
+                    ]
+                }},
+                {{  "requirement_level_0": {{
+                    "muc": "1.",
+                    {{
+                        "requirement_name": "Yêu cầu về kỹ thuật",
                         "sub_requirements": [
                             {{
-                                "requirement_level_2": {{
-                                     "muc": "số chỉ mục",
-                                    "requirement_name": "tên yêu cầu là các yêu cầu có level nhỏ hơn level 1",
+                                "requirement_level_1": {{
+                                    "muc": "1.2.",
+                                    "requirement_name": "Yêu cầu về kỹ thuật",
                                     "sub_requirements": [
                                         {{
-                                            "requirement_level_3": {{
-                                                "requirement_name": "tên yêu cầu là các yêu cầu có level nhỏ hơn level 2",
+                                            "requirement_level_2": {{
+                                                "muc": "1",
+                                                "requirement_name": "Bản quyền phần mềm Microsoft Office LTSC Standard 2021",
                                                 "description": [
                                                     {{
-                                                        "description_detail": "mô tả từng chi tiết của yêu cầu"
+                                                        "description_detail": "Đảm bảo tương thích với hệ điều hành Windows 10, Windows 11"
+                                                    }},
+                                                    {{
+                                                        "description_detail": "Bao gồm các ứng dụng cơ bản như Word, Excel, PowerPoint và Outlook."
                                                     }}
                                                 ]
                                             }}
@@ -1207,14 +1231,62 @@ Return only the JSON in this format:
                         ]
                     }}
                 }}
-            ]
-        }}
-    }}
-]                                      
-               
+            }}
+            Return only the JSON in this format:
+                    
+            [
+                {{"hr": [
+                        {{
+                            "position": "Vị trí công việc, nếu không có yêu cầu bắt buộc để giá trị rỗng",
+                            "quantity": "Số lượng yêu cầu, nếu không có yêu cầu bắt buộc để giá trị 0",
+                            "requirements": [
+                                {{
+                                    "name": "tên yêu cầu, nếu không có yêu cầu bắt buộc để giá trị rỗng",
+                                    "description": "mô tả chi tiết của yêu cầu, nếu không có yêu cầu bắt buộc để giá trị rỗng"
+                                }}
+                            ]                
+                        }}
+                    ]
+                }},	
+                {{
+                    "requirement_level_0": {{
+                        "muc": "số chỉ mục",
+                        "requirement_name": "Yêu cầu kỹ thuật",
+                        "sub_requirements": [
+                            {{
+                                "requirement_level_1": {{
+                                    "muc": "số chỉ mục",
+                                    "requirement_name": "tên yêu cầu là các yêu cầu trong phạm vi mô tả ở trên có level nhỏ hơn level 0",
+                                    "sub_requirements": [
+                                        {{
+                                            "requirement_level_2": {{
+                                                "muc": "số chỉ mục",
+                                                "requirement_name": "tên yêu cầu là các yêu cầu có level nhỏ hơn level 1",
+                                                "sub_requirements": [
+                                                    {{
+                                                        "requirement_level_3": {{
+                                                            "requirement_name": "tên yêu cầu là các yêu cầu có level nhỏ hơn level 2",
+                                                            "description": [
+                                                                {{
+                                                                    "description_detail": "mô tả từng chi tiết của yêu cầu"
+                                                                }}
+                                                            ]
+                                                        }}
+                                                    }}
+                                                ]
+                                            }}
+                                        }}
+                                    ]
+                                }}
+                            }}
+                        ]
+                    }}
+                }}
+            ]                                       
+                        
             Nội dung hồ sơ mời thầu:
-            {content}
-        """
+                {content}
+    """
 
     def _merge_technical_results(self, results):
         """Merge technical requirements from different chunks"""

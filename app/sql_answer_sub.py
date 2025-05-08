@@ -116,6 +116,9 @@ def consume_callback(ch, method, properties, body):
                     },
                 },
             )
+            inserted_step_sql_answer = postgre.insertHistorySQL(hs_id=hs_id, step="SQL_ANSWER")
+            if not inserted_step_sql_answer:
+                print(f"Không insert được trạng thái 'SQL_ANSWER' vào history với hs_id: {hs_id}")
             logger.info("[v] Done run graph and inserted finance requirement.")
         except Exception as e:
             logger.error(
@@ -124,10 +127,14 @@ def consume_callback(ch, method, properties, body):
         sql = "SELECT * from email_contents where id = %s"
         params = (res["email_content_id"],)
         email_sql = postgre.selectSQL(sql, params)
+        inserted_step_generate_template = postgre.insertHistorySQL(hs_id=hs_id, step="GENARATE_TEMPLATE")
+        if not inserted_step_generate_template:
+            print(f"Không insert được trạng thái 'GENARATE_TEMPLATE' vào history với hs_id: {hs_id}")
         if not email_sql:
             return
         next_queue = RABBIT_MQ_SEND_MAIL_QUEUE
         next_message = {
+            "hs_id": hs_id,
             "proposal_id": proposal_id,
             "email_content_id": email_content_id,
             "subject": f"Kết quả phân tích hồ sơ ({email_sql[0].get("hs_id", "")})",

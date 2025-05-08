@@ -5,9 +5,10 @@ import sys
 
 from app.config.env import EnvSettings
 from app.mq.rabbit_mq import RabbitMQClient
+from app.storage.postgre import insertHistorySQL
 from app.utils.classify import classify
-from app.utils.logger import get_logger
 from app.utils.smtp_mail import send_email_with_attachments
+from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -71,6 +72,9 @@ def consume_callback(ch, method, properties, body):
     message = result["message"]
     if status == "success":
         print(f" [x] Classify success: {message}")
+        inserted_step_classify = insertHistorySQL(hs_id=hs_id, step="CLASSIFY")
+        if not inserted_step_classify:
+            print("Không insert được trạng thái 'CLASSIFY' vào history với hs_id: %s", hs_id)
         next_queue = RABBIT_MQ_CHAPTER_SPLITER_QUEUE
         rabbit_mq.publish(next_queue, message)
     else:

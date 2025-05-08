@@ -14,7 +14,7 @@ from minio.error import S3Error
 from app.config.env import EnvSettings
 from app.model_ai import llm
 from app.mq.rabbit_mq import RabbitMQClient
-from app.storage.postgre import executeSQL, selectSQL
+from app.storage.postgre import executeSQL, insertHistorySQL, selectSQL
 from app.utils.download_file_minio import get_minio_client
 from app.utils.logger import get_logger
 from app.utils.minio import upload_to_minio
@@ -187,6 +187,9 @@ def classify(hs_id: str, email: str):
 
         # If no HSMT files found, return an error
         if not has_hsmt:
+            inserted_step_exception_classify = insertHistorySQL(hs_id=hs_id, step="SENT_EMAIL_EXCEPTION")
+            if not inserted_step_exception_classify:
+                print("Không insert được trạng thái 'SENT_EMAIL_EXCEPTION' vào history với hs_id: %s", hs_id)
             return {"status": "error", "message": "Không có file Hồ sơ mời thầu trong bộ file được tải lên!"}
 
         logger.debug(f"Files object: {files_object}")

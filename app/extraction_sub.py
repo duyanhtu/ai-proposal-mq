@@ -11,6 +11,7 @@ from app.nodes.agentic_proposal.proposal_md_team_v1_0_2 import (
     proposal_md_team_graph_v1_0_2_instance,
 )
 from app.storage import pgdb
+from app.storage import postgre
 
 MINIO_API_ENDPOINT = EnvSettings().MINIO_API_ENDPOINT  # Cổng API
 MINIO_CONSOLE_ENDPOINT = EnvSettings().MINIO_CONSOLE_ENDPOINT  # Cổng Console (UI)
@@ -87,6 +88,9 @@ def consume_callback(ch, method, properties, body):
                     },
                 },
             )
+            inserted_step_extraction = postgre.insertHistorySQL(hs_id=hs_id, step="EXTRACTION")
+            if not inserted_step_extraction:
+                print("Không insert được trạng thái 'EXTRACTION' vào history với hs_id: %s", hs_id)
             next_queue = RABBIT_MQ_SQL_ANSWER_QUEUE
             next_message = {
                 "hs_id": hs_id,

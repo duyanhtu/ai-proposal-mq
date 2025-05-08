@@ -361,7 +361,7 @@ def insert_many_hr_requirement(proposal_id, list_of_hr_requirement):
         # get hr id after insert
         hr_id = cur.fetchone()[0]
         hr_detail_values = [
-            (hr_id, fr["name"], fr["description"], fr["document_name"])
+            (hr_id, fr["name"], fr["description"], fr.get("document_name",""))
             for fr in hr["requirements"]
         ]
         sql_insert_many_hr_detail = """
