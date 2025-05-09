@@ -49,7 +49,7 @@ def consume_callback(ch, method, properties, body):
         subject=message.get("subject", "")
         body=message.get("body", "")
         recipient=message.get("recipient", "")
-        attachment_paths=message.get("attachment_paths")
+        attachment_paths=message.get("attachment_paths", None)
         response = send_email_with_attachments(
             email_address=EnvSettings().GMAIL_ADDRESS,
             app_password=EnvSettings().GMAIL_APP_PASSWORD,
@@ -78,10 +78,11 @@ def consume_callback(ch, method, properties, body):
                 postgre.executeSQL(sql13, params13)
         # =====================================
         # Xóa các file đã tạo sau khi gửi email
-        for file_path in attachment_paths:
-            if file_path and os.path.exists(file_path):
-                os.remove(file_path)
-                print(f"Deleted file: {file_path}")
+        if attachment_paths:
+            for file_path in attachment_paths:
+                if file_path and os.path.exists(file_path):
+                    os.remove(file_path)
+                    print(f"Deleted file: {file_path}")
         inserted_step_compelete = postgre.insertHistorySQL(hs_id=hs_id, step="COMPELETE")
         if not inserted_step_compelete:
             print("Không insert được trạng thái 'COMPELETE' vào history với hs_id: %s", hs_id)
