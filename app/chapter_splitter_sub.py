@@ -222,24 +222,36 @@ def consume_callback(ch, method, properties, body):
                 # ✅ Chuyển tiếp dữ liệu sang bước tiếp theo: Markdown Queue
                 if len(results_processed_chapter) == 0:
                     # Get sender
-                    sql = "SELECT sender FROM email_contents WHERE id = %s"
-                    params = (email_content_id)
+                    sql = "SELECT sender,hs_id FROM email_contents WHERE id = %s"
+                    params = (email_content_id,)
                     email_sql = postgre.selectSQL(sql, params)
-                    logger.info(" [x] Email SQL: ", email_sql[0])
+                    logger.info(f" [x] Email SQL: {email_sql[0]}")
                     if not email_sql:
                         logger.error(
                             f" [!] Không tìm thấy email_content_id: {email_content_id}")
                         return
+                    # Update status email_contents thành 'XU_LY_LOI'
+                    sql = """
+                        UPDATE email_contents
+                        SET status = 'XU_LY_LOI'
+                        WHERE hs_id = %s;
+                    """
+                    params = (email_sql[0]["hs_id"],)
+                    postgre.executeSQL(sql, params)
+
+                    # Gửi email thông báo không tìm thấy chương
+                    message = {
+                        "hs_id": email_sql[0]["hs_id"],
+                        "proposal_id": "",
+                        "subject": f"Kết quả phân tích hồ sơ ({email_sql[0]["hs_id"]})",
+                        "body": "Kính gửi anh chị,\nHiện tại hệ thống không thể xử lý hồ sơ mời thầu này.",
+                        "recipient": email_sql[0]["sender"],
+                        "attachment_paths": []
+                    }
 
                     rabbit_mq.publish(
                         queue=RABBIT_MQ_SEND_MAIL_QUEUE,
-                        message={
-                            "hs_id": email_content_id,
-                            "proposal_id": "",
-                            "subject": f"Kết quả phân tích hồ sơ ({email_content_id})",
-                            "body": "Kính gửi anh chị,\nHiện tại hệ thống không thể xử lý hồ sơ mời thầu này.",
-                            "recipient": email_sql[0]
-                        },
+                        message=message,
                     )
 
                     return
@@ -299,9 +311,11 @@ def consume_callback(ch, method, properties, body):
         files_object = [
             {k: v for k, v in file.items() if k != "file_type"} for file in files_object
         ]
-        inserted_step_chapter_splitter = postgre.insertHistorySQL(hs_id=hs_id, step="CHAPTER_SPLITER")
+        inserted_step_chapter_splitter = postgre.insertHistorySQL(
+            hs_id=hs_id, step="CHAPTER_SPLITER")
         if not inserted_step_chapter_splitter:
-            print("Không insert được trạng thái 'CHAPTER_SPLITER' vào history với hs_id: %s", hs_id)
+            print(
+                "Không insert được trạng thái 'CHAPTER_SPLITER' vào history với hs_id: %s", hs_id)
         if files_object:
             next_queue = RABBIT_MQ_MARKDOWN_QUEUE
             next_message = {"id": hs_id, "files": files_object}
