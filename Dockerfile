@@ -36,12 +36,21 @@ logfile=/var/log/supervisord.log\n\
 logfile_maxbytes=50MB\n\
 logfile_backups=10\n\
 \n\
+[inet_http_server]\n\
+port=*:9001\n\
+username=admin\n\
+password=admin\n\
+\n\
+[rpcinterface:supervisor]\n\
+supervisor.rpcinterface_factory=supervisor.rpcinterface:make_main_rpcinterface\n\
+\n\
 [program:main_classify]\n\
 command=python /app/main_classify.py\n\
 stdout_logfile=/var/log/main_classify.log\n\
 stderr_logfile=/var/log/main_classify.log\n\
 autorestart=true\n\
 startretries=10\n\
+environment=PROCESS_ID="main_classify"\n\
 \n\
 [program:main_chapter_splitter]\n\
 command=python /app/main_chapter_splitter.py\n\
@@ -49,6 +58,7 @@ stdout_logfile=/var/log/main_chapter_splitter.log\n\
 stderr_logfile=/var/log/main_chapter_splitter.log\n\
 autorestart=true\n\
 startretries=10\n\
+environment=PROCESS_ID="main_chapter_splitter"\n\
 \n\
 [program:main_extraction_sub]\n\
 command=python /app/main_extraction_sub.py\n\
@@ -56,6 +66,7 @@ stdout_logfile=/var/log/main_extraction_sub.log\n\
 stderr_logfile=/var/log/main_extraction_sub.log\n\
 autorestart=true\n\
 startretries=10\n\
+environment=PROCESS_ID="main_extraction_sub"\n\
 \n\
 [program:main_sql_answer]\n\
 command=python /app/main_sql_answer.py\n\
@@ -63,14 +74,19 @@ stdout_logfile=/var/log/main_sql_answer.log\n\
 stderr_logfile=/var/log/main_sql_answer.log\n\
 autorestart=true\n\
 startretries=10\n\
+environment=PROCESS_ID="main_sql_answer"\n\
 \n\
 [program:main_send_mail]\n\
 command=python /app/main_send_mail.py\n\
 stdout_logfile=/var/log/main_send_mail.log\n\
 stderr_logfile=/var/log/main_send_mail.log\n\
 autorestart=true\n\
-startretries=10\n'\
+startretries=10\n\
+environment=PROCESS_ID="main_send_mail"\n'\
 > /etc/supervisor/conf.d/app.conf
+
+# Expose the supervisor web interface port
+EXPOSE 9001
 
 # Set the command to run supervisord
 CMD ["/usr/bin/supervisord"]
