@@ -246,6 +246,7 @@ def consume_callback(ch, method, properties, body):
                         "subject": f"Kết quả phân tích hồ sơ ({email_sql[0]["hs_id"]})",
                         "body": "Kính gửi anh chị,\nHiện tại hệ thống không thể xử lý hồ sơ mời thầu này.",
                         "recipient": email_sql[0]["sender"],
+                        "attachment_paths": []
                     }
 
                     rabbit_mq.publish(
@@ -310,9 +311,11 @@ def consume_callback(ch, method, properties, body):
         files_object = [
             {k: v for k, v in file.items() if k != "file_type"} for file in files_object
         ]
-        inserted_step_chapter_splitter = postgre.insertHistorySQL(hs_id=hs_id, step="CHAPTER_SPLITER")
+        inserted_step_chapter_splitter = postgre.insertHistorySQL(
+            hs_id=hs_id, step="CHAPTER_SPLITER")
         if not inserted_step_chapter_splitter:
-            print("Không insert được trạng thái 'CHAPTER_SPLITER' vào history với hs_id: %s", hs_id)
+            print(
+                "Không insert được trạng thái 'CHAPTER_SPLITER' vào history với hs_id: %s", hs_id)
         if files_object:
             next_queue = RABBIT_MQ_MARKDOWN_QUEUE
             next_message = {"id": hs_id, "files": files_object}
