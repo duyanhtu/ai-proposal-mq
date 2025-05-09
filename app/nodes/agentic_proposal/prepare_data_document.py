@@ -10,10 +10,14 @@ from langchain_core.prompts import ChatPromptTemplate
 
 # Your imports
 from app.config.env import EnvSettings
+from app.nodes.agentic_proposal.extraction_handle_error import format_error_message
+from app.utils.logger import get_logger
 from app.model_ai import llm
 from app.storage import pgdb
 from app.nodes.states.state_proposal_v1 import StateProposalV1
 from app.utils.minio import download_from_minio
+
+logger = get_logger("except_handling_extraction")
 
 MINIO_API_ENDPOINT = EnvSettings().MINIO_API_ENDPOINT  # Cổng API
 MINIO_CONSOLE_ENDPOINT = EnvSettings().MINIO_CONSOLE_ENDPOINT  # Cổng Console (UI)
@@ -53,78 +57,99 @@ class PrepareDataDocumentNodeV1:
         """Tải file từ MinIO nếu chưa có"""
         file_name = dfm["mdpath"].split("/")[-1]
         bucket_name = dfm["bucket"]
-
+        logger.debug(f"Starting download of file: {file_name} from bucket: {bucket_name}")
         # Kiểm tra xem thư mục temp có tồn tại không
         if not os.path.exists(TEMPLATE_FILE_PATH):
             os.makedirs(TEMPLATE_FILE_PATH, exist_ok=True)
-            print(f"Đã tạo thư mục: {TEMPLATE_FILE_PATH}")
+            logger.info(f"Đã tạo thư mục: {TEMPLATE_FILE_PATH}")
         download_path = os.path.join(TEMPLATE_FILE_PATH, file_name)
-        print(f"[⬇] Đang tải file: {file_name}...")
-        file_md_downloaded = download_from_minio(
-            object_name=file_name,
-            download_path=download_path,
-            bucket_name=bucket_name,
-            minio_endpoint=f"http://{MINIO_API_ENDPOINT}",
-            access_key=MINIO_ACCESS_KEY,
-            secret_key=MINIO_SECRET_KEY,
-        )
-        self.downloaded_files.append(download_path)
-        print(f"[✔] Đã tải xong: {file_name}")
-        return file_md_downloaded
+        logger.info(f"[⬇] Đang tải file: {file_name}...")
+
+        try:
+            file_md_downloaded = download_from_minio(
+                object_name=file_name,
+                download_path=download_path,
+                bucket_name=bucket_name,
+                minio_endpoint=f"http://{MINIO_API_ENDPOINT}",
+                access_key=MINIO_ACCESS_KEY,
+                secret_key=MINIO_SECRET_KEY,
+            )
+            self.downloaded_files.append(download_path)
+            logger.info(f"[✔] Đã tải xong: {file_name}")
+            return file_md_downloaded
+        except Exception as e:
+            logger.error(f"Failed to download file {file_name}. Error: {str(e)}")
 
     # Defining __call__ method
     def __call__(self, state: StateProposalV1):
-        start_time = time.perf_counter()
         print(self.name)
-        document_file_md = state["document_file_md"]
-        hs_id = state["hs_id"]
-        # 1. Tải file PDF gốc của HSMT
-        sql = f"""
-            SELECT *
-            FROM email_contents
-            WHERE hs_id = '{hs_id}' AND type = 'HSMT'
-        """
-        result = pgdb.select(sql)
-        if not result:
-            print(" [x] Không có tài liệu hồ sơ mời thầu!")
-        file_pdf_all_hsmt = {
-            "mdpath": result[0]["link"],
-            "bucket": result[0]["link"].split("/")[0]
-        }
-        file_pdf_all_downloaded = self.download_file(file_pdf_all_hsmt)
-        document_content = []
-        with fitz.open(file_pdf_all_downloaded) as pdf_document:
-            for page in pdf_document:
-                document_content.append(page.get_text("text"))
-        # 2. Tải 3 file MD (bao gồm một file HSKT, TBMT và chương 3 của HSMT)
-        document_content_markdown_tbmt = ""
-        document_content_markdown_hskt = ""
-        document_content_markdown_hsmt = ""
+        try:
+            start_time = time.perf_counter()
+            document_file_md = state["document_file_md"]
+            hs_id = state["hs_id"]
+            # 1. Tải file PDF gốc của HSMT
+            sql = f"""
+                SELECT *
+                FROM email_contents
+                WHERE hs_id = '{hs_id}' AND type = 'HSMT'
+            """
+            result = pgdb.select(sql)
+            if not result:
+                logger.warning(" [x] Không có tài liệu hồ sơ mời thầu!")
+            file_pdf_all_hsmt = {
+                "mdpath": result[0]["link"],
+                "bucket": result[0]["link"].split("/")[0]
+            }
+            file_pdf_all_downloaded = self.download_file(file_pdf_all_hsmt)
+            document_content = []
+            with fitz.open(file_pdf_all_downloaded) as pdf_document:
+                for page in pdf_document:
+                    document_content.append(page.get_text("text"))
+            # 2. Tải 3 file MD (bao gồm một file HSKT, TBMT và chương 3 của HSMT)
+            document_content_markdown_tbmt = ""
+            document_content_markdown_hskt = ""
+            document_content_markdown_hsmt = ""
 
-        for dfm in document_file_md:
-            file_md_downloaded = self.download_file(dfm)
-            document_content_markdown = Path(file_md_downloaded).read_text(encoding="utf-8")
-            if dfm["type"] == "TBMT":
-                document_content_markdown_tbmt = document_content_markdown
-            elif dfm["type"] == "HSKT":
-                document_content_markdown_hskt = document_content_markdown
-            elif dfm["type"] == "HSMT":
-                document_content_markdown_hsmt = document_content_markdown
+            for dfm in document_file_md:
+                logger.info(f"Processing file of type: {dfm['type']}")
+                file_md_downloaded = self.download_file(dfm)
+                document_content_markdown = Path(file_md_downloaded).read_text(encoding="utf-8")
+                if dfm["type"] == "TBMT":
+                    document_content_markdown_tbmt = document_content_markdown
+                elif dfm["type"] == "HSKT":
+                    document_content_markdown_hskt = document_content_markdown
+                elif dfm["type"] == "HSMT":
+                    document_content_markdown_hsmt = document_content_markdown
+                logger.debug(f"Finished processing {dfm['type']} file")
 
-        # 3. Xóa file được tải xuống trong thư mục temp
-        for file_path in self.downloaded_files:
-            try:
-                os.remove(file_path)
-                print(f"[🗑] Đã xóa: {file_path}")
-            except Exception as e:
-                print(f"[⚠] Lỗi khi xóa {file_path}: {e}")
+            # 3. Xóa file được tải xuống trong thư mục temp
+            for file_path in self.downloaded_files:
+                try:
+                    os.remove(file_path)
+                    logger.debug(f"[🗑] Đã xóa: {file_path}")
+                except Exception as e:
+                    logger.error(f"[⚠] Lỗi khi xóa {file_path}: {str(e)}")
 
-        finish_time = time.perf_counter()
-        print(f"Total time: {finish_time - start_time} s")
-        return {
-            "email_content_id": result[0]["id"],
-            "document_content": document_content,
-            "document_content_markdown_tbmt": document_content_markdown_tbmt,
-            "document_content_markdown_hskt": document_content_markdown_hskt,
-            "document_content_markdown_hsmt": document_content_markdown_hsmt
-        }
+            finish_time = time.perf_counter()
+            logger.info(f"Total time: {finish_time - start_time} s")
+            return {
+                "email_content_id": result[0]["id"],
+                "document_content": document_content,
+                "document_content_markdown_tbmt": document_content_markdown_tbmt,
+                "document_content_markdown_hskt": document_content_markdown_hskt,
+                "document_content_markdown_hsmt": document_content_markdown_hsmt
+            }
+        except Exception as e:
+            error_msg = format_error_message(
+                node_name=self.name,
+                e=e,
+                context=f"hs_id: {state.get('hs_id', '')}", 
+                include_trace=True
+            )
+            return {
+                "document_content": [],
+                "document_content_markdown_tbmt": "",
+                "document_content_markdown_hskt": "",
+                "document_content_markdown_hsmt": "",
+                "error_messages": [error_msg],
+            }

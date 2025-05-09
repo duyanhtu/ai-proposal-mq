@@ -28,6 +28,7 @@ class EnvSettings(BaseSettings, case_sensitive=True):
     RABBIT_MQ_EXTRACTION_QUEUE: str = ""
     RABBIT_MQ_SEND_MAIL_QUEUE: str = ""
     RABBIT_MQ_SQL_ANSWER_QUEUE: str = ""
+    RABBIT_MQ_CLASSIFY_QUEUE: str = ""
     MINIO_API_ENDPOINT: str = ""
     MINIO_CONSOLE_ENDPOINT: str = ""
     MINIO_ACCESS_KEY: str = ""
@@ -38,6 +39,8 @@ class EnvSettings(BaseSettings, case_sensitive=True):
     RETRY_DELAY: int = 30
     GMAIL_ADDRESS: str = ""
     GMAIL_APP_PASSWORD: str = ""
+    GOOGLE_AI_STUDIO_KEY: str = ""
+    LOGGING_LEVEL: str = "DEBUG"
 
     model_config = SettingsConfigDict(env_file=".env", extra="allow")
 

@@ -3,7 +3,7 @@ import time
 
 from dotenv import load_dotenv
 
-from app.sql_answer_sub import sql_answer_sub
+from app.chapter_splitter_sub import chapter_splitter_sub
 from app.utils.logger import get_logger
 
 # Tải biến môi trường từ file .env
@@ -13,15 +13,15 @@ load_dotenv()
 consumer = os.getenv("CONSUMER")
 
 # Configure logging using our centralized logger
-logger = get_logger("sql_answer_main")
+logger = get_logger("chapter_splitter_main")
 
 
 def main():
     """main with retry logic"""
     while True:
         try:
-            logger.info("Starting sql_answer_sub service")
-            sql_answer_sub()
+            logger.info("Starting chapter_splitter_sub service")
+            chapter_splitter_sub()
         except Exception as e:
             logger.error(f"Service failed: {str(e)}")
             logger.info("Restarting in 30 seconds...")

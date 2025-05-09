@@ -1,10 +1,10 @@
-import logging
 import os
 import time
 
 from dotenv import load_dotenv
 
 from app.send_mail_sub import send_mail_sub
+from app.utils.logger import get_logger
 
 # Tải biến môi trường từ file .env
 load_dotenv()
@@ -12,38 +12,20 @@ load_dotenv()
 # Lấy giá trị biến môi trường
 consumer = os.getenv("CONSUMER")
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger("main1")
+# Configure logging using our centralized logger
+logger = get_logger("send_mail_main")
 
 
 def main():
     """main with retry logic"""
-    max_retries = int(os.getenv("MAX_RETRIES", "3"))
-    retry_delay = int(os.getenv("RETRY_DELAY", "30"))
-
-    retry_count = 0
-    while retry_count <= max_retries:
+    while True:
         try:
-            logger.info(
-                f"Attempt {retry_count + 1}/{max_retries + 1}: Running send_mail_sub()")
+            logger.info("Starting send_mail_sub service")
             send_mail_sub()
-            logger.info("Successfully completed send_mail_sub()")
-            break
         except Exception as e:
-            retry_count += 1
-            logger.error(f"Error in send_mail_sub: {str(e)}")
-
-            if retry_count <= max_retries:
-                logger.info(f"Retrying in {retry_delay} seconds...")
-                time.sleep(retry_delay)
-            else:
-                logger.error(
-                    f"Maximum retries ({max_retries}) reached. Giving up.")
-                raise
+            logger.error(f"Service failed: {str(e)}")
+            logger.info("Restarting in 30 seconds...")
+            time.sleep(30)
 
 
 if __name__ == "__main__":

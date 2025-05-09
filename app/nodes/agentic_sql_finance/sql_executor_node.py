@@ -10,7 +10,14 @@ from langgraph.prebuilt import create_react_agent
 from app.config.env import EnvSettings
 
 # Your imports
+from app.config.env import EnvSettings
 from app.nodes.states.state_finance import StateSqlFinance
+
+PGDB_HOST=EnvSettings().PGDB_HOST
+PGDB_PORT=EnvSettings().PGDB_PORT
+PGDB_NAME=EnvSettings().PGDB_NAME
+PGDB_USER=EnvSettings().PGDB_USER
+PGDB_PASS=EnvSettings().PGDB_PASS
 
 # SQL Executor prompt
 sql_executor_system_prompt = """
@@ -33,9 +40,9 @@ REMEMBER, always use the execute_sql tool!
 @tool
 def execute_sql(sql_query: str):
     """Execute SQL query."""
-    # db = SQLDatabase.from_uri("postgresql://postgres:Hpt123456@10.4.18.143:54331/AI_PROPOSAL")
-    db = SQLDatabase.from_uri(
-        f"postgresql://{EnvSettings().PGDB_USER}:{EnvSettings().PGDB_PASS}@{EnvSettings().PGDB_HOST}:{EnvSettings().PGDB_PORT}/{EnvSettings().PGDB_NAME}")
+    uri = f"postgresql://{PGDB_USER}:{PGDB_PASS}@{PGDB_HOST}:{PGDB_PORT}/{PGDB_NAME}"
+    db = SQLDatabase.from_uri(uri)
+
     execute_query_tool = QuerySQLDatabaseTool(db=db)
     return execute_query_tool.invoke(sql_query)
 
@@ -51,7 +58,7 @@ class SQLExecutorNodeV1:
         self.prompt = prompt
 
     def __call__(self, state: StateSqlFinance):
-        print(f"Executing node: {self.name}")
+        print(self.name)
         # Extract the last message (assumed to contain SQL queries)
         last_message = state["messages"][-1].content
         try:

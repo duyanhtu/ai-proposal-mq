@@ -41,7 +41,7 @@ class SQLCreateQuestionNodeV1:
 
     # Defining __call__ method
     def __call__(self, state: StateSqlFinance):
-        print(f"Executing node: {self.name}")
+        print(self.name)
         
         # Lấy dữ liệu đầu vào từ state["messages"][-1]
         last_message_content = state["messages"][-1].content
