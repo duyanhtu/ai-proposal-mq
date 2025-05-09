@@ -225,6 +225,7 @@ def consume_callback(ch, method, properties, body):
                     sql = "SELECT sender FROM email_contents WHERE id = %s"
                     params = (email_content_id)
                     email_sql = postgre.selectSQL(sql, params)
+                    logger.info(" [x] Email SQL: ", email_sql)
                     if not email_sql:
                         logger.error(
                             f" [!] Không tìm thấy email_content_id: {email_content_id}")
