@@ -14,6 +14,7 @@ from minio.error import S3Error
 from app.config.env import EnvSettings
 from app.model_ai import llm
 from app.mq.rabbit_mq import RabbitMQClient
+from app.storage import postgre
 from app.storage.postgre import executeSQL, insertHistorySQL, selectSQL
 from app.utils.doc_to_md import do_convert  # Import the DOCX to MD converter
 from app.utils.download_file_minio import get_minio_client
@@ -208,6 +209,9 @@ def classify(hs_id: str, email: str):
             if not inserted_step_exception_classify:
                 print(
                     "Không insert được trạng thái 'SENT_EMAIL_EXCEPTION' vào history với hs_id: %s", hs_id)
+            sql = "UPDATE email_contents SET end_process_date = now() AT TIME ZONE 'UTC' WHERE hs_id=%s"
+            params = (hs_id,)
+            postgre.executeSQL(sql, params)
             return {"status": "error", "message": "Không có file Hồ sơ mời thầu trong bộ file được tải lên!"}
 
         logger.debug(f"Files object: {files_object}")
@@ -216,7 +220,6 @@ def classify(hs_id: str, email: str):
             "bucket": MINIO_BUCKET,
             "files": files_object,
         }
-
         return {"status": "success", "message": message}
 
     except Exception as e:

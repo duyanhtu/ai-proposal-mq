@@ -110,9 +110,10 @@ def consume_callback(ch, method, properties, body):
             res = sql_team_graph_v1_0_1_instance.invoke(
                 inputs
             )
-            inserted_step_sql_answer = postgre.insertHistorySQL(hs_id=hs_id, step="SQL_ANSWER")
-            if not inserted_step_sql_answer:
-                print(f"Không insert được trạng thái 'SQL_ANSWER' vào history với hs_id: {hs_id}")
+            if is_data_extracted_finance:
+                inserted_step_sql_answer = postgre.insertHistorySQL(hs_id=hs_id, step="SQL_ANSWER")
+                if not inserted_step_sql_answer:
+                    print(f"Không insert được trạng thái 'SQL_ANSWER' vào history với hs_id: {hs_id}")
             logger.info("[v] Done run graph and inserted finance requirement.")
         except Exception as e:
             logger.error(
