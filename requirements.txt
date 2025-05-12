@@ -188,7 +188,7 @@ nipype==1.9.2
 nltk==3.9.1
 notion-client==2.3.0
 notion-to-md-py==0.1.1
-numpy==2.2.4
+numpy==1.26.2
 oauthlib==3.2.2
 olefile==0.47
 onnxruntime==1.19.2
