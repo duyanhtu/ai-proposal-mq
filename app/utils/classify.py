@@ -150,8 +150,7 @@ def classify(hs_id: str, email: str):
                         logger.warning(
                             f"Could not extract text from PDF: {file_name}")
                         # Update status in database
-                        executeSQL("UPDATE email_contents SET type = 'UNKNOWN', status = 'XU_LY_LOI', classify_type = %s WHERE id = %s",
-                                   (classify_type, id))
+                        executeSQL("UPDATE email_contents SET status = 'XU_LY_LOI' WHERE hs_id = %s",(hs_id,))
                         continue
 
                     # Classify the document type
@@ -188,6 +187,7 @@ def classify(hs_id: str, email: str):
         # If no HSMT files found, return an error
         if not has_hsmt:
             inserted_step_exception_classify = insertHistorySQL(hs_id=hs_id, step="SENT_EMAIL_EXCEPTION")
+            executeSQL("UPDATE email_contents SET status = 'LOI_KHONG_HSMT' WHERE hs_id = %s",(hs_id,))
             if not inserted_step_exception_classify:
                 print("Không insert được trạng thái 'SENT_EMAIL_EXCEPTION' vào history với hs_id: %s", hs_id)
             return {"status": "error", "message": "Không có file Hồ sơ mời thầu trong bộ file được tải lên!"}
