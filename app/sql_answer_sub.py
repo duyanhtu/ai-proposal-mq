@@ -108,13 +108,7 @@ def consume_callback(ch, method, properties, body):
         }
         try:
             res = sql_team_graph_v1_0_1_instance.invoke(
-                inputs,
-                config={
-                    "callbacks": [langfuse_handler.env_ai_proposal()],
-                    "metadata": {
-                        "langfuse_user_id": f"sql_answer_sub_{hs_id}@hpt.vn"
-                    },
-                },
+                inputs
             )
             inserted_step_sql_answer = postgre.insertHistorySQL(hs_id=hs_id, step="SQL_ANSWER")
             if not inserted_step_sql_answer:
