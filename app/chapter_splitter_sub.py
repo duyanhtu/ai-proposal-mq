@@ -297,7 +297,7 @@ def consume_callback(ch, method, properties, body):
         for file in files_object:
             email_content_id = original_file_paths.get(file["file_type"], None)
             sql = """
-                INSERT INTO document_detail (email_content_id, file_name_pdf, link_pdf,link_md ) 
+                INSERT INTO document_detail (email_content_id, file_name, link,link_md)
                 VALUES (%s, %s, %s,%s) 
                 RETURNING id;
             """
