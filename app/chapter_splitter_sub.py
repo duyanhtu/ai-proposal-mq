@@ -272,10 +272,10 @@ def consume_callback(ch, method, properties, body):
                                     "bucket": message["bucket"],
                                     "file_name": uploaded_files[0].split("/")[-1],
                                     "file_type": file_type,
-                                    "file_path": uploaded_files[0],
+                                    "file_path": file_path,
                                     "document_detail_id": None,
                                     "classify_type": classify_type,
-                                    "markdown_link": markdown_link,
+                                    "markdown_link": uploaded_files[0],
                                 }
                             )
                         else:
