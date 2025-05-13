@@ -2,7 +2,6 @@ import json
 import os
 import signal
 import sys
-import traceback
 
 from app.config import langfuse_handler
 from app.config.env import EnvSettings
@@ -10,7 +9,10 @@ from app.mq.rabbit_mq import RabbitMQClient
 from app.nodes.agentic_proposal.proposal_md_team_v1_0_2 import (
     proposal_md_team_graph_v1_0_2_instance,
 )
-from app.storage import pgdb
+from app.storage import pgdb, postgre
+from app.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 MINIO_API_ENDPOINT = EnvSettings().MINIO_API_ENDPOINT  # Cổng API
 MINIO_CONSOLE_ENDPOINT = EnvSettings().MINIO_CONSOLE_ENDPOINT  # Cổng Console (UI)
@@ -59,7 +61,7 @@ def consume_callback(ch, method, properties, body):
     """Xử lý tin nhắn nhận được từ queue."""
     try:
         message = json.loads(body.decode('utf-8'))  # Giải mã JSON
-        print(f" [x] Received: {message}\n")
+        logger.info(f" [x] Received: {message}\n")
         hs_id = message["id"]
         files = message["files"]
 
@@ -75,6 +77,7 @@ def consume_callback(ch, method, properties, body):
                 file["document_detail_id"], "unknown")
         inputs = {
             "hs_id": hs_id,
+
             "document_file_md": message["files"]
         }
         try:
@@ -87,6 +90,11 @@ def consume_callback(ch, method, properties, body):
                     },
                 },
             )
+            inserted_step_extraction = postgre.insertHistorySQL(
+                hs_id=hs_id, step="EXTRACTION")
+            if not inserted_step_extraction:
+                logger.error(
+                    "Không insert được trạng thái 'EXTRACTION' vào history với hs_id: %s", hs_id)
             next_queue = RABBIT_MQ_SQL_ANSWER_QUEUE
             next_message = {
                 "hs_id": hs_id,
@@ -99,19 +107,19 @@ def consume_callback(ch, method, properties, body):
             }
             rabbit_mq.publish(queue=next_queue, message=next_message)
         except KeyError as ke:
-            print(
-                f" [!] KeyError: Missing 'proposal_id' in response: {ke}", traceback.format_exc())
+            logger.error(
+                f" [!] KeyError: Missing 'proposal_id' in response: {ke}", exc_info=True)
         except Exception as e:
-            print(
-                f" [!] Unexpected error during invoke: {e}", traceback.format_exc())
-        print(f"Done with {hs_id}")
+            logger.error(
+                f" [!] Unexpected error during invoke: {e}", exc_info=True)
+        logger.info(f"Done with {hs_id}")
         return res
     except json.JSONDecodeError:
-        print(
-            f" [!] Error: Invalid JSON format: {body}", traceback.format_exc())
+        logger.error(
+            f" [!] Error: Invalid JSON format: {body}", exc_info=True)
     except Exception:
-        print(
-            f" [!] Error: Something was wrong: {body}", traceback.format_exc())
+        logger.error(
+            f" [!] Error: Something was wrong: {body}", exc_info=True)
 
 
 def extraction_sub():

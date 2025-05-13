@@ -1,5 +1,6 @@
 import logging
-import os
+
+from app.config.env import EnvSettings
 
 
 class CustomFormatter(logging.Formatter):
@@ -32,30 +33,28 @@ def get_logger(name):
     """
     logger = logging.getLogger(name)
 
-    # Prevent duplicate handlers
+    # Only set up the logger if it doesn't have handlers already
     if not logger.handlers:
-        # Create logs directory if it doesn't exist
-        os.makedirs('logs', exist_ok=True)
+        # Get logging level from environment variable
+        log_level_str = EnvSettings().LOGGING_LEVEL
 
-        # Configure file handler
-        file_handler = logging.FileHandler(
-            f'logs/{name}.log', encoding='utf-8')
-        file_formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        file_handler.setFormatter(file_formatter)
+        # Convert string to logging level
+        log_level = getattr(logging, log_level_str.upper(), logging.INFO)
 
-        # Configure console handler with the custom formatter for colored output
+        # Set the logger's level
+        logger.setLevel(log_level)
+
+        # Create console handler with the specified log level
         console_handler = logging.StreamHandler()
+        console_handler.setLevel(log_level)
+
+        # Add formatter to console handler
         console_handler.setFormatter(CustomFormatter())
 
-        # Add handlers to logger
-        logger.addHandler(file_handler)
+        # Add console handler to logger
         logger.addHandler(console_handler)
 
-        # Set level (don't rely on root logger level)
-        logger.setLevel(logging.DEBUG)
-
-        # Optionally disable propagation to avoid duplicate logs
+        # Prevent propagation to avoid duplicate logs
         logger.propagate = False
 
     return logger

@@ -37,6 +37,7 @@ RABBIT_MQ_USER = EnvSettings().RABBIT_MQ_USER
 RABBIT_MQ_PASS = EnvSettings().RABBIT_MQ_PASS
 RABBIT_MQ_CHPATER_SPLITER_QUEUE = EnvSettings().RABBIT_MQ_CHPATER_SPLITER_QUEUE
 RABBIT_MQ_MARKDOWN_QUEUE = EnvSettings().RABBIT_MQ_MARKDOWN_QUEUE
+RABBIT_MQ_SEND_MAIL_QUEUE = EnvSettings().RABBIT_MQ_SEND_MAIL_QUEUE
 # Khởi tạo RabbitMQClient dùng chung
 rabbit_mq = RabbitMQClient(
     host=RABBIT_MQ_HOST,
@@ -212,13 +213,49 @@ def consume_callback(ch, method, properties, body):
                 else:
                     # Tải file từ link trong bảng email contents
                     file_downloaded = download_file_from_minio(
-                        filename=markdown_link)
+                        filename=markdown_link, bucket="markdown")
                     download_path = file_downloaded["download_path"].replace(
                         "\\", "/")
                     # Chia thành các file nhỏ hơn và lưu vào Temp
                     results_processed_chapter = process_file_md(
                         download_path, keyword)
                 # ✅ Chuyển tiếp dữ liệu sang bước tiếp theo: Markdown Queue
+                if len(results_processed_chapter) == 0:
+                    # Get sender
+                    sql = "SELECT sender,hs_id FROM email_contents WHERE id = %s"
+                    params = (email_content_id,)
+                    email_sql = postgre.selectSQL(sql, params)
+                    logger.info(f" [x] Email SQL: {email_sql[0]}")
+                    if not email_sql:
+                        logger.error(
+                            f" [!] Không tìm thấy email_content_id: {email_content_id}")
+                        return
+                    # Update status email_contents thành 'XU_LY_LOI'
+                    sql = """
+                        UPDATE email_contents
+                        SET status = 'XU_LY_LOI'
+                        WHERE hs_id = %s;
+                    """
+                    params = (email_sql[0]["hs_id"],)
+                    postgre.executeSQL(sql, params)
+
+                    # Gửi email thông báo không tìm thấy chương
+                    message = {
+                        "hs_id": email_sql[0]["hs_id"],
+                        "proposal_id": "",
+                        "subject": f"Kết quả phân tích hồ sơ ({email_sql[0]["hs_id"]})",
+                        "body": "Kính gửi anh chị,\nHiện tại hệ thống không thể xử lý hồ sơ mời thầu này.",
+                        "recipient": email_sql[0]["sender"],
+                        "attachment_paths": []
+                    }
+
+                    rabbit_mq.publish(
+                        queue=RABBIT_MQ_SEND_MAIL_QUEUE,
+                        message=message,
+                    )
+
+                    return
+
                 for rpc in results_processed_chapter:
                     if keyword.lower() in rpc["name"].lower():
                         # file_path_fixed = result["path"].replace("\\", "/").split("/")[-1]
@@ -260,12 +297,12 @@ def consume_callback(ch, method, properties, body):
         for file in files_object:
             email_content_id = original_file_paths.get(file["file_type"], None)
             sql = """
-                INSERT INTO document_detail (email_content_id, file_name_pdf, link_pdf,link_md ) 
+                INSERT INTO document_detail (email_content_id, file_name, link,link_md)
                 VALUES (%s, %s, %s,%s) 
                 RETURNING id;
             """
             params = (email_content_id,
-                      file["file_name"], file["file_path"], markdown_link)
+                      file["file_name"], file["file_path"], file["file_path"] if classify_type != 'TEXT' else markdown_link)
             inserted_id = postgre.executeSQL(sql, params)
             if inserted_id:
                 # Gán ID vào files_object
@@ -274,7 +311,11 @@ def consume_callback(ch, method, properties, body):
         files_object = [
             {k: v for k, v in file.items() if k != "file_type"} for file in files_object
         ]
-
+        inserted_step_chapter_splitter = postgre.insertHistorySQL(
+            hs_id=hs_id, step="CHAPTER_SPLITER")
+        if not inserted_step_chapter_splitter:
+            print(
+                "Không insert được trạng thái 'CHAPTER_SPLITER' vào history với hs_id: %s", hs_id)
         if files_object:
             next_queue = RABBIT_MQ_MARKDOWN_QUEUE
             next_message = {"id": hs_id, "files": files_object}

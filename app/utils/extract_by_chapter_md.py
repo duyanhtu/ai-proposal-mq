@@ -188,7 +188,17 @@ def extract_chapter_smart(md_path, chapter_num=None, chapter_title=None):
 
     # Method 1: Look for explicit markdown headings with chapter patterns
     heading_pattern = re.compile(r'^(#{1,3})\s+(.*?)$', re.MULTILINE)
-    chapter_pattern = re.compile(r'Chương\s+([0-9IVX]+)', re.IGNORECASE)
+
+    # Updated chapter pattern to better match Vietnamese documents
+    chapter_pattern = re.compile(
+        r'^(Chương|Chapter|CHƯƠNG|CHAPTER)\s+([0-9IVX]+)(?:[\s\.:\-]+(.*))?', re.IGNORECASE)
+
+    # New pattern for uppercase chapter titles
+    uppercase_chapter_pattern = re.compile(
+        r'^(CHƯƠNG|CHAPTER)\s+([0-9IVX]+)', re.MULTILINE)
+
+    # Pattern for bold markdown in headings (e.g., # **Chương II.**)
+    bold_pattern = re.compile(r'\*\*(.*?)\*\*')
 
     chapter_candidates = []
 
@@ -198,6 +208,37 @@ def extract_chapter_smart(md_path, chapter_num=None, chapter_title=None):
             heading_level = len(heading_match.group(1))
             heading_text = heading_match.group(2).strip()
 
+            # Check for bold markdown in the heading
+            bold_match = bold_pattern.search(heading_text)
+            if bold_match:
+                # Extract the text within the bold markers
+                bold_text = bold_match.group(1).strip()
+                # Check if the bold text contains a chapter pattern
+                chapter_match = chapter_pattern.search(bold_text)
+                if chapter_match:
+                    confidence = 0.9  # Higher confidence for bold chapter headings
+
+                    # Extract the chapter details
+                    chapter_num_value = chapter_match.group(2)
+                    chapter_title_text = chapter_match.group(
+                        3) if chapter_match.group(3) else ""
+                    chapter_title_text = chapter_title_text.strip()
+
+                    chapter_candidates.append({
+                        "title": line.strip(),
+                        "line": line_idx + 1,
+                        "content_start": line_idx,
+                        "confidence": confidence,
+                        "method": "bold_heading",
+                        "heading_level": heading_level,
+                        "chapter_num": chapter_num_value,
+                        "is_uppercase": bold_text.upper() == bold_text,
+                        "title_text": chapter_title_text,
+                        "title_is_uppercase": chapter_title_text.upper() == chapter_title_text if chapter_title_text else False
+                    })
+                    continue  # Skip further processing of this line
+
+            # Regular chapter heading check
             chapter_match = chapter_pattern.search(heading_text)
             if chapter_match:
                 confidence = 0.8  # High confidence for standard markdown headings
@@ -208,6 +249,18 @@ def extract_chapter_smart(md_path, chapter_num=None, chapter_title=None):
                 elif heading_level == 2:
                     confidence += 0.05  # Good for H2 headings
 
+                # Extract the actual chapter title (text after chapter number)
+                chapter_num_value = chapter_match.group(2)
+                chapter_title_text = chapter_match.group(
+                    3) if chapter_match.group(3) else ""
+                chapter_title_text = chapter_title_text.strip()
+
+                # Check if the chapter title part is uppercase
+                title_is_uppercase = False
+                if chapter_title_text and chapter_title_text.upper() == chapter_title_text:
+                    confidence += 0.15  # Bonus for uppercase title text
+                    title_is_uppercase = True
+
                 chapter_candidates.append({
                     "title": line.strip(),
                     "line": line_idx + 1,
@@ -215,11 +268,14 @@ def extract_chapter_smart(md_path, chapter_num=None, chapter_title=None):
                     "confidence": confidence,
                     "method": "heading",
                     "heading_level": heading_level,
-                    "chapter_num": chapter_match.group(1)
+                    "chapter_num": chapter_num_value,
+                    "is_uppercase": heading_text.upper() == heading_text,
+                    "title_text": chapter_title_text,
+                    "title_is_uppercase": title_is_uppercase
                 })
 
         # Method 2: Check for chapter patterns without markdown headings
-        elif chapter_pattern.search(line):
+        elif re.match(r'^(Chương|Chapter|CHƯƠNG|CHAPTER)\s+([0-9IVX]+)', line, re.IGNORECASE):
             # Look for special formatting indicators
             is_capitalized = line.upper() == line
             # Indentation as centering proxy
@@ -227,11 +283,28 @@ def extract_chapter_smart(md_path, chapter_num=None, chapter_title=None):
 
             confidence = 0.5  # Base confidence
 
+            # Extract the chapter title part
+            chapter_match = chapter_pattern.search(line)
+            chapter_num_value = chapter_match.group(2)
+            chapter_title_text = chapter_match.group(
+                3) if chapter_match.group(3) else ""
+            chapter_title_text = chapter_title_text.strip()
+
+            # Check if the chapter title part is uppercase
+            title_is_uppercase = False
+            if chapter_title_text and chapter_title_text.upper() == chapter_title_text:
+                confidence += 0.2  # Increased bonus for uppercase title text
+                title_is_uppercase = True
+
             if is_capitalized:
-                confidence += 0.1
+                confidence += 0.1  # Bonus for entire line being uppercase
 
             if is_centered:
                 confidence += 0.1
+
+            # Special check for "CHƯƠNG X" pattern (all uppercase)
+            if uppercase_chapter_pattern.search(line):
+                confidence += 0.1  # Additional bonus for uppercase "CHƯƠNG" keyword
 
             chapter_candidates.append({
                 "title": line.strip(),
@@ -239,8 +312,11 @@ def extract_chapter_smart(md_path, chapter_num=None, chapter_title=None):
                 "content_start": line_idx,
                 "confidence": confidence,
                 "method": "text_pattern",
-                "is_capitalized": is_capitalized,
-                "is_centered": is_centered
+                "is_uppercase": is_capitalized,
+                "is_centered": is_centered,
+                "title_text": chapter_title_text,
+                "title_is_uppercase": title_is_uppercase,
+                "chapter_num": chapter_num_value
             })
 
     # De-duplicate and merge results from different methods
@@ -285,7 +361,10 @@ def extract_chapter_smart(md_path, chapter_num=None, chapter_title=None):
                 "end_line": end_line + 1 if target_idx < len(merged_chapters) - 1 else end_line,
                 "content": content,
                 "detection_method": target_chapter["method"],
-                "confidence": target_chapter["confidence"]
+                "confidence": target_chapter["confidence"],
+                "is_uppercase": target_chapter.get("is_uppercase", False),
+                "title_text": target_chapter.get("title_text", ""),
+                "title_is_uppercase": target_chapter.get("title_is_uppercase", False)
             }
 
         return None  # Chapter not found
@@ -322,8 +401,9 @@ def filter_real_chapters(chapter_candidates):
     if not filtered_candidates and candidates_by_score:
         filtered_candidates = [candidates_by_score[0]]
 
+    sorted_result = sorted(filtered_candidates, key=lambda x: x["line"])
     # Sort by line number for sequential order
-    return sorted(filtered_candidates, key=lambda x: x["line"])
+    return sorted_result
 
 
 # Example usage

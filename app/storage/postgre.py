@@ -64,3 +64,21 @@ def executeSQL(query: str, params: Optional[tuple] = None) -> Optional[any]:
             conn.rollback()
         print(f"Error executing query: {e}")
         raise
+
+def insertHistorySQL(hs_id: str, step: str) -> bool:
+    """Insert a record into the history table."""
+    query = """
+        INSERT INTO histories (hs_id, step)
+        VALUES (%s, %s)
+    """
+    try:
+        with psycopg2.connect(CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+                cur.execute(query, (hs_id, step))
+                conn.commit()
+                return True
+    except Exception as e:
+        if 'conn' in locals():
+            conn.rollback()
+        print(f"Error inserting into history: {e}")
+        return False

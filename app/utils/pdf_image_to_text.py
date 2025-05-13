@@ -9,12 +9,16 @@ import numpy as np
 import PIL.Image
 
 from app.config.env import EnvSettings
+from app.utils.logger import get_logger
+
+# Initialize logger
+logger = get_logger(__name__)
 
 # Load environment settings
 env = EnvSettings()
 
 # Configure Gemini API with key from environment
-genai.configure(api_key="AIzaSyA7h4hlPYDwSNl9syJuS5nFG7FWWgczBTc")
+genai.configure(api_key=EnvSettings().GOOGLE_AI_STUDIO_KEY)
 
 # Initialize Gemini 1.5 Flash model
 model = genai.GenerativeModel('gemini-1.5-flash')
@@ -141,7 +145,7 @@ Extract everything in the original language and maintain the document's visual h
 
             full_text.append(text)
         except Exception as e:
-            print(f"Error processing page {page_num + 1}: {str(e)}")
+            logger.error(f"Error processing page {page_num + 1}: {str(e)}")
             error_msg = f"[Error processing page {page_num + 1}]"
             full_text.append(error_msg)
 
@@ -211,7 +215,7 @@ def main():
 
     # Process all PDF files in the data directory
     for pdf_file in DATA_DIR.glob('*.pdf'):
-        print(f"Processing {pdf_file.name}...")
+        logger.info(f"Processing {pdf_file.name}...")
 
         # if pdf_file.name.lower() in "20251004064457_vanlth_hpt.vn_Thu_moi_chao_thau_HPT.pdf".lower():
         # Create output filename
@@ -222,4 +226,4 @@ def main():
 
         # Save the output
         save_output(content, output_file)
-        print(f"Saved results to {output_file}")
+        logger.info(f"Saved results to {output_file}")

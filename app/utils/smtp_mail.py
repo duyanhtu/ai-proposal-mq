@@ -11,6 +11,11 @@ from email.utils import formatdate
 from pathlib import Path
 from typing import Any, Dict, List, Union
 
+from app.utils.logger import get_logger
+
+# Initialize logger
+logger = get_logger(__name__)
+
 
 class GmailSMTPClient:
     """
@@ -372,7 +377,7 @@ class GmailSMTPClient:
             return email_list
 
         except Exception as e:
-            print(f"Error reading emails: {str(e)}")
+            logger.error(f"Error reading emails: {str(e)}")
             return []
 
     def save_attachment(self, email_data: Dict[str, Any], attachment_index: int,
@@ -694,7 +699,7 @@ def reply_to_email_with_attachment(email_address: str, app_password: str,
         "Test Email from SMTP Client",
         "This is a test email sent using the SMTP client."
     )
-    print(f"Send simple email result: {result}")
+    logger.info(f"Send simple email result: {result}")
 
     # Example 2: Send an email with attachments
     result = send_email_with_attachments(
@@ -705,11 +710,11 @@ def reply_to_email_with_attachment(email_address: str, app_password: str,
         "Please find the requested documents attached.",
         ["path/to/document1.pdf", "path/to/document2.xlsx"]
     )
-    print(f"Send email with attachments result: {result}")
+    logger.info(f"Send email with attachments result: {result}")
 
     # Example 3: Read unread emails
     emails = read_unread_emails(EMAIL, APP_PASSWORD)
-    print(f"Found {len(emails)} unread emails")
+    logger.info(f"Found {len(emails)} unread emails")
 
     # Example 4: Find emails with specific attachments
     filtered = find_emails_with_specific_attachments(
@@ -717,7 +722,7 @@ def reply_to_email_with_attachment(email_address: str, app_password: str,
         APP_PASSWORD,
         ["invoice", "proposal", "contract"]
     )
-    print(f"Found {len(filtered)} emails with matching attachments")
+    logger.info(f"Found {len(filtered)} emails with matching attachments")
 
     # Example 5: Save attachments from specific emails
     save_result = save_attachments_from_email(
@@ -726,4 +731,4 @@ def reply_to_email_with_attachment(email_address: str, app_password: str,
         ["proposal", "thầu"],
         "saved_attachments"
     )
-    print(save_result["message"]) """
+    logger.info(save_result["message"]) """

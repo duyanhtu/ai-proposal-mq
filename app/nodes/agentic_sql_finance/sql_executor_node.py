@@ -1,10 +1,13 @@
 import json
+
+from langchain_community.tools.sql_database.tool import QuerySQLDatabaseTool
+from langchain_community.utilities import SQLDatabase
+from langchain_core.messages import HumanMessage
+from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
-from langchain_core.tools import tool
-from langchain_community.utilities import SQLDatabase
-from langchain_community.tools.sql_database.tool import QuerySQLDatabaseTool
-from langchain_core.messages import HumanMessage, ToolMessage
+
+from app.config.env import EnvSettings
 
 # Your imports
 from app.config.env import EnvSettings
@@ -15,7 +18,6 @@ PGDB_PORT=EnvSettings().PGDB_PORT
 PGDB_NAME=EnvSettings().PGDB_NAME
 PGDB_USER=EnvSettings().PGDB_USER
 PGDB_PASS=EnvSettings().PGDB_PASS
-
 
 # SQL Executor prompt
 sql_executor_system_prompt = """
@@ -40,8 +42,10 @@ def execute_sql(sql_query: str):
     """Execute SQL query."""
     uri = f"postgresql://{PGDB_USER}:{PGDB_PASS}@{PGDB_HOST}:{PGDB_PORT}/{PGDB_NAME}"
     db = SQLDatabase.from_uri(uri)
+
     execute_query_tool = QuerySQLDatabaseTool(db=db)
     return execute_query_tool.invoke(sql_query)
+
 
 class SQLExecutorNodeV1:
     """SQL Executor Node V1"""
@@ -59,7 +63,8 @@ class SQLExecutorNodeV1:
         last_message = state["messages"][-1].content
         try:
             sql_data = json.loads(last_message)
-            sql_queries = sql_data["sql_query"]  # List of dicts: [{"finance_requirement_id": ..., "sql": ...}, ...]
+            # List of dicts: [{"finance_requirement_id": ..., "sql": ...}, ...]
+            sql_queries = sql_data["sql_query"]
         except json.JSONDecodeError as e:
             return {
                 "messages": state["messages"] + [HumanMessage(content=json.dumps({"sql_executor": [{"finance_requirement_id": "N/A", "sql_result": f"Invalid JSON input: {str(e)}"}]}), name=self.name)]
@@ -70,7 +75,7 @@ class SQLExecutorNodeV1:
             tools=[execute_sql],
             state_modifier=self.prompt,
         )
-        
+
         results = []
         for query_item in sql_queries:
             finance_requirement_id = query_item["finance_requirement_id"]
@@ -78,7 +83,8 @@ class SQLExecutorNodeV1:
             try:
                 # Invoke the agent with a single query
                 agent_input = [HumanMessage(content=sql_query)]
-                agent_result = sql_executor_agent.invoke({"messages": agent_input})
+                agent_result = sql_executor_agent.invoke(
+                    {"messages": agent_input})
                 # print("AGENT_RESULT: ",agent_result)
                 execution_output = agent_result["messages"][-2].content
                 # for message in agent_result["messages"]:
@@ -96,15 +102,17 @@ class SQLExecutorNodeV1:
                     "finance_requirement_id": finance_requirement_id,
                     "sql_result": f"Error executing query: {str(e)}"
                 })
-        
+
         # Format the result as JSON per the prompt
-        execution_result_json = json.dumps({"sql_result": results}, ensure_ascii=False)
+        execution_result_json = json.dumps(
+            {"sql_result": results}, ensure_ascii=False)
         print("[SQL_EXECUTOR_NODE_V1] RESULT: ", execution_result_json)
-        
+
         # Return the updated state
         return {
             "messages": state["messages"] + [HumanMessage(content=execution_result_json, name=self.name)]
         }
+
 
 class SQLExecutorNodeV1m0p1:
     """SQL Executor Node V1.0.1"""
@@ -122,7 +130,8 @@ class SQLExecutorNodeV1m0p1:
         last_message = state["messages"][-1].content
         try:
             sql_data = json.loads(last_message)
-            sql_queries = sql_data["sql_query"]  # List of dicts: [{"finance_requirement_id": ..., "sql": ...}, ...]
+            # List of dicts: [{"finance_requirement_id": ..., "sql": ...}, ...]
+            sql_queries = sql_data["sql_query"]
         except json.JSONDecodeError as e:
             return {
                 "messages": state["messages"] + [HumanMessage(content=json.dumps({"sql_executor": [{"finance_requirement_id": "N/A", "sql_result": f"Invalid JSON input: {str(e)}"}]}), name=self.name)]
@@ -133,7 +142,7 @@ class SQLExecutorNodeV1m0p1:
             tools=[execute_sql],
             state_modifier=self.prompt,
         )
-        
+
         results = []
         for query_item in sql_queries:
             finance_requirement_id = query_item["finance_requirement_id"]
@@ -141,7 +150,8 @@ class SQLExecutorNodeV1m0p1:
             try:
                 # Invoke the agent with a single query
                 agent_input = [HumanMessage(content=sql_query)]
-                agent_result = sql_executor_agent.invoke({"messages": agent_input})
+                agent_result = sql_executor_agent.invoke(
+                    {"messages": agent_input})
                 # print("AGENT_RESULT: ",agent_result)
                 execution_output = agent_result["messages"][-2].content
                 # for message in agent_result["messages"]:
@@ -159,11 +169,12 @@ class SQLExecutorNodeV1m0p1:
                     "finance_requirement_id": finance_requirement_id,
                     "sql_result": f"Error executing query: {str(e)}"
                 })
-        
+
         # Format the result as JSON per the prompt
-        execution_result_json = json.dumps({"sql_result": results}, ensure_ascii=False)
+        execution_result_json = json.dumps(
+            {"sql_result": results}, ensure_ascii=False)
         print("[SQL_EXECUTOR_NODE_V1] RESULT: ", execution_result_json)
-        
+
         # Return the updated state
         return {
             "messages": state["messages"] + [HumanMessage(content=execution_result_json, name=self.name)]
