@@ -357,7 +357,7 @@ def classify_document_from_text(text, file_name=None):
         status = "CHUA_XU_LY"
 
         match True:
-            case _ if "hồ sơ mời thầu" in text_lower and "chỉ dẫn nhà thầu" in text_lower:
+            case _ if "hồ sơ mời thầu" in text_lower and any(keyword in text_lower for keyword in ["chỉ dẫn nhà thầu", "chỉ dẫn đối với nhà thầu"]):
                 doc_type = "HSMT"
                 if file_name:
                     logger.info(f"Classified {file_name} as HSMT")
