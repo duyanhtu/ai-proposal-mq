@@ -56,7 +56,7 @@ class PrepareDataDocumentNodeV1:
     def download_file(self, dfm):
         """Tải file từ MinIO nếu chưa có"""
         file_name = dfm["mdpath"].split("/")[-1]
-        bucket_name = dfm["bucket"]
+        bucket_name = dfm["mdpath"].split("/")[0]
         logger.debug(f"Starting download of file: {file_name} from bucket: {bucket_name}")
         # Kiểm tra xem thư mục temp có tồn tại không
         if not os.path.exists(TEMPLATE_FILE_PATH):
