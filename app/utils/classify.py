@@ -384,7 +384,9 @@ def classify_document_from_text(text, file_name=None):
             # HSKT must be a complete technical specification document, not just a section mentioning technical aspects
             case _ if (re.search(r"hồ\s+sơ\s+k[ỹy]\s*thu[ậa]t", text_lower) or
                       re.search(r"yêu\s+cầu\s+k[ỹy]\s*thu[ậa]t\s+chi\s+tiết", text_lower) or
-                      re.search(r"thuyết\s+minh\s+k[ỹy]\s*thu[ậa]t", text_lower)) and "tiêu chuẩn đánh giá" not in text_lower:
+                      re.search(r"thuyết\s+minh\s+k[ỹy]\s*thu[ậa]t", text_lower) or
+                      re.search(r"k[ỹy]\s*thu[ậa]t", text_lower) or
+                      re.search(r"yêu\s+cầu\s+về\s+k[ỹy]\s*thu[ậa]t", text_lower)) and "tiêu chuẩn đánh giá" not in text_lower:
                 doc_type = "HSKT"
                 if file_name:
                     logger.info(f"Classified {file_name} as HSKT")
