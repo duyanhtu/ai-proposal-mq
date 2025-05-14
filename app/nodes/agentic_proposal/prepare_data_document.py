@@ -5,6 +5,7 @@ import os
 
 # Third party imports
 import concurrent
+import traceback
 import fitz
 from langchain_core.prompts import ChatPromptTemplate
 
@@ -168,6 +169,7 @@ class PrepareDataDocumentNodeV1:
                 "document_content_markdown_hsmt": document_content_markdown_hsmt
             }
         except Exception as e:
+            print(f"error: {str(e)}, Traceback: {traceback.format_exc()}")
             error_msg = format_error_message(
                 node_name=self.name,
                 e=e,
