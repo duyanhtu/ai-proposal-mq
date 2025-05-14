@@ -351,6 +351,70 @@ def classify_document_from_text(text, file_name=None):
                and status is either 'CHUA_XU_LY' or 'XU_LY_LOI'
     """
     try:
+        # Extract key information for classification
+        text_lower = text.lower()
+
+        # Determine document type using match-case statement
+        doc_type = None
+        status = "CHUA_XU_LY"
+
+        match True:
+            # HSMT must contain specific section identifiers beyond just the title
+            case _ if "hồ sơ mời thầu" in text_lower and any(keyword in text_lower for keyword in
+                                                             ["chỉ dẫn nhà thầu", "chỉ dẫn đối với nhà thầu", "bảng dữ liệu đấu thầu", "phần 1:", "phần 2:"]):
+                doc_type = "HSMT"
+                if file_name:
+                    logger.info(f"Classified {file_name} as HSMT")
+
+            # TBMT must have clear invitation wording and typically includes dates or bid details
+            case _ if "thông báo mời thầu" in text_lower and (
+                # New criteria based on sample TBMT
+                any(keyword in text_lower for keyword in ["gói thầu", "đóng thầu", "mở thầu",
+                                                          "ngày tháng năm", "đấu thầu", "giá dự toán",
+                                                          "địa điểm phát hành", "địa điểm nộp",
+                                                          "bảo đảm dự thầu", "thời gian thực hiện"]) or
+                # Regex patterns for dates and times often found in TBMT
+                re.search(r"\d{1,2}[/-]\d{1,2}[/-]\d{2,4}", text_lower) or
+                re.search(r"\d{1,2}:\d{2}", text_lower)
+            ):
+                doc_type = "TBMT"
+                if file_name:
+                    logger.info(f"Classified {file_name} as TBMT")
+
+            # HSKT must be a complete technical specification document, not just a section mentioning technical aspects
+            case _ if (re.search(r"hồ\s+sơ\s+k[ỹy]\s*thu[ậa]t", text_lower) or
+                      re.search(r"yêu\s+cầu\s+k[ỹy]\s*thu[ậa]t\s+chi\s+tiết", text_lower) or
+                      re.search(r"thuyết\s+minh\s+k[ỹy]\s*thu[ậa]t", text_lower)) and "tiêu chuẩn đánh giá" not in text_lower:
+                doc_type = "HSKT"
+                if file_name:
+                    logger.info(f"Classified {file_name} as HSKT")
+
+            case _:
+                doc_type = "unknown"
+                status = "XU_LY_LOI"
+                if file_name:
+                    logger.warning(
+                        f"Could not classify {file_name}, marked as UNKNOWN")
+
+        return doc_type, status
+    except Exception as e:
+        logger.error(f"Error classifying document from text: {str(e)}")
+        return "unknown", "XU_LY_LOI"
+
+
+def classify_document_from_text_old(text, file_name=None):
+    """
+    Classifies a document based on extracted text content into types: HSMT, TBMT, HSKT, or unknown.
+
+    Args:
+        text: Extracted text content
+        file_name: Optional name of the file (for logging purposes)
+
+    Returns:
+        tuple: (document_type, status) where document_type is one of 'HSMT', 'TBMT', 'HSKT', 'unknown'
+               and status is either 'CHUA_XU_LY' or 'XU_LY_LOI'
+    """
+    try:
 
         # Extract key information for classification
         text_lower = text.lower()
