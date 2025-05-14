@@ -30,7 +30,7 @@ model = genai.GenerativeModel('gemini-1.5-flash')
 # Define input and output directories
 DATA_DIR = Path("data")
 RESULTS_DIR = Path("results")
-BATCH_SIZE = 2  # Number of images per batch
+BATCH_SIZE = 1  # Number of images per batch
 
 
 def convert_image_to_base64(image):
@@ -503,7 +503,7 @@ If an image is unclear, indicate this in your output rather than guessing the co
     # Adjust batch size based on document complexity
     if total_pages > 20:
         # For large documents, use smaller batches
-        batch_size = min(batch_size, 2)
+        batch_size = min(batch_size, 1)
 
     # Prepare batches for parallel processing
     batches = []
@@ -755,7 +755,7 @@ def main_test():
             output_format='text',
             batch_size=BATCH_SIZE,
             debug_mode=True,
-            max_workers=3  # Adjust based on your machine's capabilities
+            max_workers=4  # Adjust based on your machine's capabilities
         )
 
         # Save the output
