@@ -308,9 +308,9 @@ def consume_callback(ch, method, properties, body):
                 # Gán ID vào files_object
                 file["document_detail_id"] = inserted_id
 
-        files_object = [
-            {k: v for k, v in file.items() if k != "file_type"} for file in files_object
-        ]
+        # files_object = [
+        #     {k: v for k, v in file.items() if k != "file_type"} for file in files_object
+        # ]
         inserted_step_chapter_splitter = postgre.insertHistorySQL(
             hs_id=hs_id, step="CHAPTER_SPLITER")
         if not inserted_step_chapter_splitter:

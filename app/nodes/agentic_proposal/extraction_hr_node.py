@@ -406,52 +406,57 @@ class ExtractionHRMDNodeV1m1p0:
                 3. Chỉ lấy dữ liệu trong bảng tiêu chuẩn đánh giá 
                 4. Trong yêu cầu nếu có lưu ý trong ngoặc() hãy trích xuất đầy đủ thông tin trong ngoặc.
                 5. Nếu không có yêu cầu về nhân sự không thực hiện trích xuất bất kỳ dữ liệu nào.
-                6. Danh sách biểu mẫu cần lấy đầy đủ nhất khi có thông tin.
-                7. Nếu không có thông tin về các yêu cầu thì điền chuỗi rỗng.
+                6. Danh sách biểu mẫu cần lấy đầy đủ nhất khi có thông tin (Ví dụ: 'Mẫu số 0X, 0Y, O6C chương 3', 'Mẫu số 0Z').
+                7. Trường biểu mẫu (document_name) nếu không có thông tin về các biểu mẫu cần điền rỗng.
+                8. Nếu không có thông tin về các yêu cầu thì điền chuỗi rỗng.
                 9. Hãy đọc kỹ và trích xuất mọi thông tin liên quan đến yêu cầu về thời hạn, tính hợp lệ của giấy tờ, và các chứng chỉ cần thiết.
 
                 Ví dụ:
 
                 Đối với yêu cầu: "Yêu cầu nhân sự chủ chốt: Không" trích xuất như sau:
-                "Vị trí công việc": "",
-                "Số lượng": số,
-                "Các yêu cầu": []
-
+                {{
+                    "position": "<vị trí công việc>",
+                    "quantity": <số lượng>,
+                    "requirements": [<Các yêu cầu>]
+                }}
                 Đối với các yêu cầu bắt buộc về nhân sự, trích xuất như sau:
-                
-                "Vị trí công việc": "Trưởng nhóm kỹ thuật",
-                "Số lượng": 1,
-                "Các yêu cầu": [
+                [
                     {{
-                        "Tên yêu cầu": "Kinh nghiệm trong các công việc tương tự(2)",
-                        "Mô tả chi tiết của yêu cầu": "Tối thiểu 2 năm hoặc 1 Hợp đồng",
-                        "Biểu mẫu": "Mẫu số 0X, 0Y, O6C chương 3"
+                        "position": "Trưởng nhóm kỹ thuật",
+                        "quantity": 1,
+                        "requirements": [
+                            {{
+                                "name": "Kinh nghiệm trong các công việc tương tự(2)",
+                                "description": "Tối thiểu 2 năm hoặc 1 Hợp đồng",
+                                "document_name": ""
+                            }},
+                            {{
+                                "name": "Chứng chỉ/Trình độ chuyên môn(3)",
+                                "description": "Đại học chuyên ngành công nghệ thông tin, kỹ thuật điện tử viễn thông,
+                                                            khoa học máy tính,tin học ứng dụng hoặc tương đương.
+                                                            Đã tham gia ít nhất 1 dự án /gói thầu khai triển cài đặt bản quyền phần mềm với vai trò trưởng nhóm dự án/gói thầu và tương đương. 
+                                                            Có chứng chỉ sau: Microsoft 365 Certified: Modern Desktop Administrator Associate",
+                                "document_name": ""
+                            }}        
+                        ]
                     }},
                     {{
-                        "Tên yêu cầu": "Chứng chỉ/Trình độ chuyên môn(3)",
-                        "Mô tả chi tiết của yêu cầu": "Đại học chuyên ngành công nghệ thông tin, kỹ thuật điện tử viễn thông,
-                                                    khoa học máy tính,tin học ứng dụng hoặc tương đương.
-                                                    Đã tham gia ít nhất 1 dự án /gói thầu khai triển cài đặt bản quyền phần mềm với vai trò trưởng nhóm dự án/gói thầu và tương đương. 
-                                                    Có chứng chỉ sau: Microsoft 365 Certified: Modern Desktop Administrator Associate",
-                        "Biểu mẫu": "Mẫu số 0Z"
-                    }}        
+                        "position": "Giám đốc dự án/Trưởng dự án",
+                        "quantity": 1,
+                        "requirements": [
+                            {{
+                                "name": "Trình độ học vấn",
+                                "description": "Trên đại học (100%) tương đương 2;Đại học (70%) tương 1.4đương 1,4; Dưới đại học (0%) tương đương 0;",
+                                "document_name": ""
+                            }},
+                            {{
+                                "name": "Kinh nghiệm làm việc trong lĩnh vực công nghệ thông tin (tính từ thời điểm bắt đầu làm việc trong lĩnh vực công nghệ thông tin)",
+                                "description": "≥ 07 năm (100%) tương đương 3; Từ 05 đến dưới 07 năm (70%) tương đương 2,1; < 05 năm (0%) tương đương 0",
+                                "document_name": ""
+                            }}        
+                        ]
+                    }}
                 ]
-                
-                "Vị trí nhân sự": "Giám đốc dự án/Trưởng dự án",
-                "Số lượng": 1,
-                "Các yêu cầu": [
-                    {{
-                        "Tên yêu cầu": "Trình độ học vấn",
-                        "Mô tả chi tiết của yêu cầu": "Trên đại học (100%) tương đương 2;Đại học (70%) tương 1.4đương 1,4; Dưới đại học (0%) tương đương 0;",
-                        "Biểu mẫu": ""
-                    }},
-                    {{
-                        "Tên yêu cầu": "Kinh nghiệm làm việc trong lĩnh vực công nghệ thông tin (tính từ thời điểm bắt đầu làm việc trong lĩnh vực công nghệ thông tin)",
-                        "Mô tả chi tiết của yêu cầu": "≥ 07 năm (100%) tương đương 3; Từ 05 đến dưới 07 năm (70%) tương đương 2,1; < 05 năm (0%) tương đương 0",
-                        "Biểu mẫu": "Mẫu số Y chương 5"
-                    }}        
-                ]
-                
                 Return only the JSON in this format:
                 {{
                     "hr": [
@@ -468,7 +473,6 @@ class ExtractionHRMDNodeV1m1p0:
                         }}
                     ]
                 }}
-
                 Nội dung hồ sơ mời thầu:
                         {content}
             """

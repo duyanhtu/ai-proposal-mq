@@ -9,6 +9,9 @@ from app.mq.rabbit_mq import RabbitMQClient
 from app.nodes.agentic_proposal.proposal_md_team_v1_0_2 import (
     proposal_md_team_graph_v1_0_2_instance,
 )
+from app.nodes.agentic_proposal.proposal_md_team_v1_0_3 import (
+    proposal_md_team_graph_v1_0_3_instance,
+)
 from app.storage import pgdb, postgre
 from app.utils.logger import get_logger
 
@@ -77,11 +80,11 @@ def consume_callback(ch, method, properties, body):
                 file["document_detail_id"], "unknown")
         inputs = {
             "hs_id": hs_id,
-
             "document_file_md": message["files"]
         }
         try:
-            res = proposal_md_team_graph_v1_0_2_instance.invoke(
+            # res = proposal_md_team_graph_v1_0_2_instance.invoke(
+            res = proposal_md_team_graph_v1_0_3_instance.invoke(
                 inputs,
                 config={
                     "callbacks": [langfuse_handler.env_ai_proposal()],
