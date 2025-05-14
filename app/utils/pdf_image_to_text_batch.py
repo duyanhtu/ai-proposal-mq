@@ -445,7 +445,7 @@ def rotate_table_image(img, debug_mode=False):
     return img
 
 
-def convert_pdf_to_text(pdf_path, output_format='text', batch_size=BATCH_SIZE, debug_mode=False, max_workers=2):
+def convert_pdf_to_text(pdf_path, output_format='text', batch_size=BATCH_SIZE, debug_mode=False, max_workers=3):
     """
     Convert PDF images to text or markdown using Google Gemini Vision API
     Processing pages in batches in parallel while preserving order
