@@ -114,22 +114,22 @@ def classify(hs_id: str, email: str):
 
                     # Extract text from DOCX file
                     extracted_text = extract_text_from_docx(temp_file_path)
-                elif file_ext == '.doc':
-                    # Handle DOC file by converting to DOCX first
-                    logger.info(f"Processing DOC file: {file_name}")
-                    classify_type = "DOC"
+                    """ elif file_ext == '.doc':
+                        # Handle DOC file by converting to DOCX first
+                        logger.info(f"Processing DOC file: {file_name}")
+                        classify_type = "DOC"
 
-                    # Convert to DOCX
-                    docx_path = convert_doc_to_docx(temp_file_path)
-                    if docx_path:
-                        # Extract text from converted DOCX file
-                        extracted_text = extract_text_from_docx(docx_path)
-                    else:
-                        logger.warning(
-                            f"Could not convert DOC file: {file_name}")
-                        executeSQL("UPDATE email_contents SET type = 'UNKNOWN', status = 'XU_LY_LOI', classify_type = 'DOC' WHERE id = %s",
-                                   (id,))
-                        continue
+                        # Convert to DOCX
+                        docx_path = convert_doc_to_docx(temp_file_path)
+                        if docx_path:
+                            # Extract text from converted DOCX file
+                            extracted_text = extract_text_from_docx(docx_path)
+                        else:
+                            logger.warning(
+                                f"Could not convert DOC file: {file_name}")
+                            executeSQL("UPDATE email_contents SET type = 'UNKNOWN', status = 'XU_LY_LOI', classify_type = 'DOC' WHERE id = %s",
+                                    (id,))
+                            continue """
                 else:
                     logger.warning(
                         f"Unsupported file format: {file_ext} for file {file_name}")
