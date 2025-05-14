@@ -114,7 +114,22 @@ def classify(hs_id: str, email: str):
 
                     # Extract text from DOCX file
                     extracted_text = extract_text_from_docx(temp_file_path)
+                elif file_ext == '.doc':
+                    # Handle DOC file by converting to DOCX first
+                    logger.info(f"Processing DOC file: {file_name}")
+                    classify_type = "DOC"
 
+                    # Convert to DOCX
+                    docx_path = convert_doc_to_docx(temp_file_path)
+                    if docx_path:
+                        # Extract text from converted DOCX file
+                        extracted_text = extract_text_from_docx(docx_path)
+                    else:
+                        logger.warning(
+                            f"Could not convert DOC file: {file_name}")
+                        executeSQL("UPDATE email_contents SET type = 'UNKNOWN', status = 'XU_LY_LOI', classify_type = 'DOC' WHERE id = %s",
+                                   (id,))
+                        continue
                 else:
                     logger.warning(
                         f"Unsupported file format: {file_ext} for file {file_name}")
@@ -533,6 +548,73 @@ def pdf_image_to_text_batch(pdf_path, page_batch_size=5):
     finally:
         if 'pdf_document' in locals():
             pdf_document.close()
+
+
+""" def convert_doc_to_docx(doc_path):
+    
+    Converts a .doc file to .docx format using LibreOffice
+
+    Args:
+        doc_path: Path to the .doc file
+
+    Returns:
+        str: Path to the converted .docx file or None if conversion failed
+    
+    try:
+        # Get directory and filename
+        file_dir = os.path.dirname(doc_path)
+        file_name = os.path.basename(doc_path)
+        file_base = os.path.splitext(file_name)[0]
+
+        # Create output path
+        output_path = os.path.join(file_dir, f"{file_base}.docx")
+
+        # Define potential LibreOffice paths on Windows
+        libreoffice_paths = [
+            r"C:\Program Files\LibreOffice\program\soffice.exe",
+            r"C:\Program Files (x86)\LibreOffice\program\soffice.exe",
+            # Add other potential paths if needed
+        ]
+
+        # Find the first valid path
+        soffice_path = None
+        for path in libreoffice_paths:
+            if os.path.exists(path):
+                soffice_path = path
+                break
+
+        if not soffice_path:
+            logger.error(
+                "LibreOffice not found. Please install LibreOffice or provide the correct path.")
+            return None
+
+        # LibreOffice command to convert .doc to .docx
+        cmd = [
+            soffice_path,
+            "--headless",
+            "--convert-to", "docx",
+            "--outdir", file_dir,
+            doc_path
+        ]
+
+        logger.info(
+            f"Converting {doc_path} to DOCX format using {soffice_path}")
+        process = subprocess.run(cmd, capture_output=True, text=True)
+
+        if process.returncode != 0:
+            logger.error(f"Conversion failed: {process.stderr}")
+            return None
+
+        if os.path.exists(output_path):
+            logger.info(f"Successfully converted to {output_path}")
+            return output_path
+        else:
+            logger.error("Conversion completed but output file not found")
+            return None
+
+    except Exception as e:
+        logger.error(f"Error converting DOC to DOCX: {str(e)}")
+        return None """
 
 
 def extract_text_from_pdf(pdf_path):
