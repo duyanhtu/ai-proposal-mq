@@ -203,6 +203,10 @@ def extract_chapter_smart(md_path, chapter_num=None, chapter_title=None):
     chapter_candidates = []
 
     for line_idx, line in enumerate(lines):
+        # Check if there's a blank line after this line (for confidence boosting)
+        followed_by_blank_line = (line_idx < len(
+            lines) - 1 and lines[line_idx + 1].strip() == '')
+
         heading_match = heading_pattern.match(line)
         if heading_match:
             heading_level = len(heading_match.group(1))
@@ -217,6 +221,10 @@ def extract_chapter_smart(md_path, chapter_num=None, chapter_title=None):
                 chapter_match = chapter_pattern.search(bold_text)
                 if chapter_match:
                     confidence = 0.9  # Higher confidence for bold chapter headings
+
+                    # Boost confidence if followed by blank line
+                    if followed_by_blank_line:
+                        confidence += 0.05
 
                     # Extract the chapter details
                     chapter_num_value = chapter_match.group(2)
@@ -234,7 +242,8 @@ def extract_chapter_smart(md_path, chapter_num=None, chapter_title=None):
                         "chapter_num": chapter_num_value,
                         "is_uppercase": bold_text.upper() == bold_text,
                         "title_text": chapter_title_text,
-                        "title_is_uppercase": chapter_title_text.upper() == chapter_title_text if chapter_title_text else False
+                        "title_is_uppercase": chapter_title_text.upper() == chapter_title_text if chapter_title_text else False,
+                        "followed_by_blank": followed_by_blank_line
                     })
                     continue  # Skip further processing of this line
 
@@ -248,6 +257,10 @@ def extract_chapter_smart(md_path, chapter_num=None, chapter_title=None):
                     confidence += 0.1  # Highest for H1 headings
                 elif heading_level == 2:
                     confidence += 0.05  # Good for H2 headings
+
+                # Boost confidence if followed by blank line
+                if followed_by_blank_line:
+                    confidence += 0.05
 
                 # Extract the actual chapter title (text after chapter number)
                 chapter_num_value = chapter_match.group(2)
@@ -271,7 +284,8 @@ def extract_chapter_smart(md_path, chapter_num=None, chapter_title=None):
                     "chapter_num": chapter_num_value,
                     "is_uppercase": heading_text.upper() == heading_text,
                     "title_text": chapter_title_text,
-                    "title_is_uppercase": title_is_uppercase
+                    "title_is_uppercase": title_is_uppercase,
+                    "followed_by_blank": followed_by_blank_line
                 })
 
         # Method 2: Check for chapter patterns without markdown headings
@@ -282,6 +296,10 @@ def extract_chapter_smart(md_path, chapter_num=None, chapter_title=None):
             is_centered = line.startswith(' ' * 4)
 
             confidence = 0.5  # Base confidence
+
+            # Boost confidence if followed by blank line
+            if followed_by_blank_line:
+                confidence += 0.15  # Higher boost for plain text headings
 
             # Extract the chapter title part
             chapter_match = chapter_pattern.search(line)
@@ -316,7 +334,8 @@ def extract_chapter_smart(md_path, chapter_num=None, chapter_title=None):
                 "is_centered": is_centered,
                 "title_text": chapter_title_text,
                 "title_is_uppercase": title_is_uppercase,
-                "chapter_num": chapter_num_value
+                "chapter_num": chapter_num_value,
+                "followed_by_blank": followed_by_blank_line
             })
 
     # De-duplicate and merge results from different methods
@@ -364,7 +383,8 @@ def extract_chapter_smart(md_path, chapter_num=None, chapter_title=None):
                 "confidence": target_chapter["confidence"],
                 "is_uppercase": target_chapter.get("is_uppercase", False),
                 "title_text": target_chapter.get("title_text", ""),
-                "title_is_uppercase": target_chapter.get("title_is_uppercase", False)
+                "title_is_uppercase": target_chapter.get("title_is_uppercase", False),
+                "followed_by_blank": target_chapter.get("followed_by_blank", False)
             }
 
         return None  # Chapter not found
