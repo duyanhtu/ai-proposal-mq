@@ -27,4 +27,8 @@ archive.zip
 /tests
 /data
 /result
-.env.production
+/media
+/Output
+/results
+/debug
+/chunks

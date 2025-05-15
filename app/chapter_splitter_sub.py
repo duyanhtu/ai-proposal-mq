@@ -272,10 +272,10 @@ def consume_callback(ch, method, properties, body):
                                     "bucket": message["bucket"],
                                     "file_name": uploaded_files[0].split("/")[-1],
                                     "file_type": file_type,
-                                    "file_path": uploaded_files[0],
+                                    "file_path": file_path,
                                     "document_detail_id": None,
                                     "classify_type": classify_type,
-                                    "markdown_link": markdown_link,
+                                    "markdown_link": uploaded_files[0],
                                 }
                             )
                         else:
@@ -297,20 +297,20 @@ def consume_callback(ch, method, properties, body):
         for file in files_object:
             email_content_id = original_file_paths.get(file["file_type"], None)
             sql = """
-                INSERT INTO document_detail (email_content_id, file_name_pdf, link_pdf,link_md ) 
+                INSERT INTO document_detail (email_content_id, file_name, link,link_md)
                 VALUES (%s, %s, %s,%s) 
                 RETURNING id;
             """
             params = (email_content_id,
-                      file["file_name"], file["file_path"], markdown_link)
+                      file["file_name"], file["file_path"], file["file_path"] if classify_type != 'TEXT' else markdown_link)
             inserted_id = postgre.executeSQL(sql, params)
             if inserted_id:
                 # Gán ID vào files_object
                 file["document_detail_id"] = inserted_id
 
-        files_object = [
-            {k: v for k, v in file.items() if k != "file_type"} for file in files_object
-        ]
+        # files_object = [
+        #     {k: v for k, v in file.items() if k != "file_type"} for file in files_object
+        # ]
         inserted_step_chapter_splitter = postgre.insertHistorySQL(
             hs_id=hs_id, step="CHAPTER_SPLITER")
         if not inserted_step_chapter_splitter:

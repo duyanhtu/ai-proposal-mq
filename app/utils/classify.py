@@ -14,7 +14,9 @@ from minio.error import S3Error
 from app.config.env import EnvSettings
 from app.model_ai import llm
 from app.mq.rabbit_mq import RabbitMQClient
+from app.storage import postgre
 from app.storage.postgre import executeSQL, insertHistorySQL, selectSQL
+from app.utils.doc_to_md import do_convert  # Import the DOCX to MD converter
 from app.utils.download_file_minio import get_minio_client
 from app.utils.logger import get_logger
 from app.utils.minio import upload_to_minio
@@ -81,25 +83,71 @@ def classify(hs_id: str, email: str):
                 logger.debug(f"Downloaded {file_name} to {temp_dir}")
                 downloaded_files.append(temp_file_path)
 
-                # Classify text or image PDF
-                is_image_based = is_image_document(temp_file_path)
-                if is_image_based:
-                    logger.info(
-                        f"File {file_name} is an image document, converting to text.")
-                    classify_type = "IMAGE"
+                # Get file extension to determine how to process it
+                file_ext = os.path.splitext(file_name)[1].lower()
 
-                    # Convert image-based PDF to text
-                    extracted_text = convert_pdf_to_text(
-                        temp_file_path)
+                # Process based on file type
+                if file_ext == '.pdf':
+                    # Classify text or image PDF
+                    is_image_based = is_image_document(temp_file_path)
+                    if is_image_based:
+                        logger.info(
+                            f"File {file_name} is an image document, converting to text.")
+                        classify_type = "IMAGE"
 
-                    if not extracted_text:
-                        logger.warning(
-                            f"Could not extract text from image-based PDF: {file_name}")
-                        # Update status in database
-                        executeSQL("UPDATE email_contents SET type = 'UNKNOWN', status = 'XU_LY_LOI', classify_type = %s WHERE id = %s",
-                                   (classify_type, id))
-                        continue
+                        # Convert image-based PDF to text
+                        extracted_text = convert_pdf_to_text(
+                            temp_file_path)
+                    else:
+                        # Handle text-based PDF
+                        logger.info(
+                            f"File {file_name} is a text PDF, proceeding with classification.")
+                        classify_type = "TEXT"
 
+                        # Extract text from text-based PDF
+                        extracted_text = extract_text_from_pdf(temp_file_path)
+
+                elif file_ext == '.docx':
+                    # Handle DOCX file
+                    logger.info(f"Processing DOCX file: {file_name}")
+                    classify_type = "DOCX"
+
+                    # Extract text from DOCX file
+                    extracted_text = extract_text_from_docx(temp_file_path)
+                    """ elif file_ext == '.doc':
+                        # Handle DOC file by converting to DOCX first
+                        logger.info(f"Processing DOC file: {file_name}")
+                        classify_type = "DOC"
+
+                        # Convert to DOCX
+                        docx_path = convert_doc_to_docx(temp_file_path)
+                        if docx_path:
+                            # Extract text from converted DOCX file
+                            extracted_text = extract_text_from_docx(docx_path)
+                        else:
+                            logger.warning(
+                                f"Could not convert DOC file: {file_name}")
+                            executeSQL("UPDATE email_contents SET type = 'UNKNOWN', status = 'XU_LY_LOI', classify_type = 'DOC' WHERE id = %s",
+                                    (id,))
+                            continue """
+                else:
+                    logger.warning(
+                        f"Unsupported file format: {file_ext} for file {file_name}")
+                    executeSQL("UPDATE email_contents SET type = 'UNKNOWN', status = 'XU_LY_LOI', classify_type = 'UNKNOWN' WHERE id = %s",
+                               (id,))
+                    continue
+
+                # Check if we have extracted text
+                if not extracted_text:
+                    logger.warning(
+                        f"Could not extract text from file: {file_name}")
+                    # Update status in database
+                    executeSQL("UPDATE email_contents SET type = 'UNKNOWN', status = 'XU_LY_LOI', classify_type = %s WHERE id = %s",
+                               (classify_type, id))
+                    continue
+
+                # For image PDFs and DOCX files, save the extracted text to a markdown file
+                if classify_type in ["IMAGE", "DOCX"]:
                     # Save extracted text to a temporary file
                     markdown_filename = f"{os.path.splitext(file_name)[0]}_{uuid.uuid4().hex[:8]}.md"
                     markdown_path = os.path.join(temp_dir, markdown_filename)
@@ -138,23 +186,7 @@ def classify(hs_id: str, email: str):
                         logger.error(
                             f"Failed to upload extracted text to MinIO for {file_name}")
                 else:
-                    # Handle text-based PDF (your existing code)
-                    logger.info(
-                        f"File {file_name} is a text PDF, proceeding with classification.")
-                    classify_type = "TEXT"
-
-                    # Extract text from text-based PDF
-                    extracted_text = extract_text_from_pdf(temp_file_path)
-
-                    if not extracted_text:
-                        logger.warning(
-                            f"Could not extract text from PDF: {file_name}")
-                        # Update status in database
-                        executeSQL("UPDATE email_contents SET type = 'UNKNOWN', status = 'XU_LY_LOI', classify_type = %s WHERE id = %s",
-                                   (classify_type, id))
-                        continue
-
-                    # Classify the document type
+                    # For text PDFs, just update classification
                     doc_type, status = classify_document_from_text(
                         extracted_text, file_name)
 
@@ -187,9 +219,14 @@ def classify(hs_id: str, email: str):
 
         # If no HSMT files found, return an error
         if not has_hsmt:
-            inserted_step_exception_classify = insertHistorySQL(hs_id=hs_id, step="SENT_EMAIL_EXCEPTION")
+            inserted_step_exception_classify = insertHistorySQL(
+                hs_id=hs_id, step="SENT_EMAIL_EXCEPTION")
             if not inserted_step_exception_classify:
-                print("Không insert được trạng thái 'SENT_EMAIL_EXCEPTION' vào history với hs_id: %s", hs_id)
+                print(
+                    "Không insert được trạng thái 'SENT_EMAIL_EXCEPTION' vào history với hs_id: %s", hs_id)
+            sql = "UPDATE email_contents SET end_process_date = now() AT TIME ZONE 'UTC' WHERE hs_id=%s"
+            params = (hs_id,)
+            postgre.executeSQL(sql, params)
             return {"status": "error", "message": "Không có file Hồ sơ mời thầu trong bộ file được tải lên!"}
 
         logger.debug(f"Files object: {files_object}")
@@ -198,7 +235,6 @@ def classify(hs_id: str, email: str):
             "bucket": MINIO_BUCKET,
             "files": files_object,
         }
-
         return {"status": "success", "message": message}
 
     except Exception as e:
@@ -330,6 +366,72 @@ def classify_document_from_text(text, file_name=None):
                and status is either 'CHUA_XU_LY' or 'XU_LY_LOI'
     """
     try:
+        # Extract key information for classification
+        text_lower = text.lower()
+
+        # Determine document type using match-case statement
+        doc_type = None
+        status = "CHUA_XU_LY"
+
+        match True:
+            # HSMT must contain specific section identifiers beyond just the title
+            case _ if "hồ sơ mời thầu" in text_lower and any(keyword in text_lower for keyword in
+                                                             ["chỉ dẫn nhà thầu", "chỉ dẫn đối với nhà thầu", "bảng dữ liệu đấu thầu", "phần 1:", "phần 2:"]):
+                doc_type = "HSMT"
+                if file_name:
+                    logger.info(f"Classified {file_name} as HSMT")
+
+            # TBMT must have clear invitation wording and typically includes dates or bid details
+            case _ if "thông báo mời thầu" in text_lower and (
+                # New criteria based on sample TBMT
+                any(keyword in text_lower for keyword in ["gói thầu", "đóng thầu", "mở thầu",
+                                                          "ngày tháng năm", "đấu thầu", "giá dự toán",
+                                                          "địa điểm phát hành", "địa điểm nộp",
+                                                          "bảo đảm dự thầu", "thời gian thực hiện"]) or
+                # Regex patterns for dates and times often found in TBMT
+                re.search(r"\d{1,2}[/-]\d{1,2}[/-]\d{2,4}", text_lower) or
+                re.search(r"\d{1,2}:\d{2}", text_lower)
+            ):
+                doc_type = "TBMT"
+                if file_name:
+                    logger.info(f"Classified {file_name} as TBMT")
+
+            # HSKT must be a complete technical specification document, not just a section mentioning technical aspects
+            case _ if (re.search(r"hồ\s+sơ\s+k[ỹy]\s*thu[ậa]t", text_lower) or
+                      re.search(r"yêu\s+cầu\s+k[ỹy]\s*thu[ậa]t\s+chi\s+tiết", text_lower) or
+                      re.search(r"thuyết\s+minh\s+k[ỹy]\s*thu[ậa]t", text_lower) or
+                      re.search(r"k[ỹy]\s*thu[ậa]t", text_lower) or
+                      re.search(r"yêu\s+cầu\s+về\s+k[ỹy]\s*thu[ậa]t", text_lower)) and "tiêu chuẩn đánh giá" not in text_lower:
+                doc_type = "HSKT"
+                if file_name:
+                    logger.info(f"Classified {file_name} as HSKT")
+
+            case _:
+                doc_type = "unknown"
+                status = "XU_LY_LOI"
+                if file_name:
+                    logger.warning(
+                        f"Could not classify {file_name}, marked as UNKNOWN")
+
+        return doc_type, status
+    except Exception as e:
+        logger.error(f"Error classifying document from text: {str(e)}")
+        return "unknown", "XU_LY_LOI"
+
+
+def classify_document_from_text_old(text, file_name=None):
+    """
+    Classifies a document based on extracted text content into types: HSMT, TBMT, HSKT, or unknown.
+
+    Args:
+        text: Extracted text content
+        file_name: Optional name of the file (for logging purposes)
+
+    Returns:
+        tuple: (document_type, status) where document_type is one of 'HSMT', 'TBMT', 'HSKT', 'unknown'
+               and status is either 'CHUA_XU_LY' or 'XU_LY_LOI'
+    """
+    try:
 
         # Extract key information for classification
         text_lower = text.lower()
@@ -339,7 +441,7 @@ def classify_document_from_text(text, file_name=None):
         status = "CHUA_XU_LY"
 
         match True:
-            case _ if "hồ sơ mời thầu" in text_lower and "chỉ dẫn nhà thầu" in text_lower:
+            case _ if "hồ sơ mời thầu" in text_lower and any(keyword in text_lower for keyword in ["chỉ dẫn nhà thầu", "chỉ dẫn đối với nhà thầu"]):
                 doc_type = "HSMT"
                 if file_name:
                     logger.info(f"Classified {file_name} as HSMT")
@@ -448,6 +550,73 @@ def pdf_image_to_text_batch(pdf_path, page_batch_size=5):
             pdf_document.close()
 
 
+""" def convert_doc_to_docx(doc_path):
+    
+    Converts a .doc file to .docx format using LibreOffice
+
+    Args:
+        doc_path: Path to the .doc file
+
+    Returns:
+        str: Path to the converted .docx file or None if conversion failed
+    
+    try:
+        # Get directory and filename
+        file_dir = os.path.dirname(doc_path)
+        file_name = os.path.basename(doc_path)
+        file_base = os.path.splitext(file_name)[0]
+
+        # Create output path
+        output_path = os.path.join(file_dir, f"{file_base}.docx")
+
+        # Define potential LibreOffice paths on Windows
+        libreoffice_paths = [
+            r"C:\Program Files\LibreOffice\program\soffice.exe",
+            r"C:\Program Files (x86)\LibreOffice\program\soffice.exe",
+            # Add other potential paths if needed
+        ]
+
+        # Find the first valid path
+        soffice_path = None
+        for path in libreoffice_paths:
+            if os.path.exists(path):
+                soffice_path = path
+                break
+
+        if not soffice_path:
+            logger.error(
+                "LibreOffice not found. Please install LibreOffice or provide the correct path.")
+            return None
+
+        # LibreOffice command to convert .doc to .docx
+        cmd = [
+            soffice_path,
+            "--headless",
+            "--convert-to", "docx",
+            "--outdir", file_dir,
+            doc_path
+        ]
+
+        logger.info(
+            f"Converting {doc_path} to DOCX format using {soffice_path}")
+        process = subprocess.run(cmd, capture_output=True, text=True)
+
+        if process.returncode != 0:
+            logger.error(f"Conversion failed: {process.stderr}")
+            return None
+
+        if os.path.exists(output_path):
+            logger.info(f"Successfully converted to {output_path}")
+            return output_path
+        else:
+            logger.error("Conversion completed but output file not found")
+            return None
+
+    except Exception as e:
+        logger.error(f"Error converting DOC to DOCX: {str(e)}")
+        return None """
+
+
 def extract_text_from_pdf(pdf_path):
     """
     Extracts text from a text-based PDF file.
@@ -481,3 +650,34 @@ def extract_text_from_pdf(pdf_path):
     finally:
         if 'pdf_document' in locals():
             pdf_document.close()
+
+
+def extract_text_from_docx(docx_path):
+    """
+    Extracts text from a DOCX file by converting it to Markdown format.
+
+    Args:
+        docx_path: Path to the DOCX file
+
+    Returns:
+        str: Extracted text in markdown format
+    """
+    try:
+        # Create a temporary directory for the output
+        with tempfile.TemporaryDirectory() as temp_dir:
+            logger.info(f"Converting DOCX to markdown: {docx_path}")
+
+            # Use the docx2md converter
+            result = do_convert(
+                docx_path, target_dir=temp_dir, use_md_table=True)
+
+            if result:
+                logger.info("Successfully converted DOCX to markdown")
+                return result
+            else:
+                logger.warning("DOCX conversion returned empty result")
+                return ""
+
+    except Exception as e:
+        logger.error(f"Error extracting text from DOCX: {str(e)}")
+        return ""

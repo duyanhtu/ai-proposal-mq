@@ -5,6 +5,7 @@ import os
 
 # Third party imports
 import concurrent
+import traceback
 import fitz
 from langchain_core.prompts import ChatPromptTemplate
 
@@ -56,7 +57,7 @@ class PrepareDataDocumentNodeV1:
     def download_file(self, dfm):
         """Tải file từ MinIO nếu chưa có"""
         file_name = dfm["mdpath"].split("/")[-1]
-        bucket_name = dfm["bucket"]
+        bucket_name = dfm["mdpath"].split("/")[0]
         logger.debug(f"Starting download of file: {file_name} from bucket: {bucket_name}")
         # Kiểm tra xem thư mục temp có tồn tại không
         if not os.path.exists(TEMPLATE_FILE_PATH):
@@ -96,15 +97,43 @@ class PrepareDataDocumentNodeV1:
             result = pgdb.select(sql)
             if not result:
                 logger.warning(" [x] Không có tài liệu hồ sơ mời thầu!")
+            # Định nghĩa giá trị mặc định lấy từ link đối với TEXT
+            # Còn không thì lấy từ markdown_link
+            mdpath = result[0].get("link", "") 
+            bucket = result[0].get("link", "").split("/")[0]
+            if result[0].get("markdown_link", None) is not None:
+                mdpath = result[0].get("markdown_link", "") 
+                bucket = result[0].get("markdown_link", "") .split("/")[0]
+
             file_pdf_all_hsmt = {
-                "mdpath": result[0]["link"],
-                "bucket": result[0]["link"].split("/")[0]
+                "mdpath": mdpath,
+                "bucket": bucket
             }
             file_pdf_all_downloaded = self.download_file(file_pdf_all_hsmt)
             document_content = []
-            with fitz.open(file_pdf_all_downloaded) as pdf_document:
-                for page in pdf_document:
-                    document_content.append(page.get_text("text"))
+            try:
+                if file_pdf_all_downloaded.endswith(".md"):
+                    # Đọc nội dung file Markdown và tách theo dòng
+                    content = Path(file_pdf_all_downloaded).read_text(encoding="utf-8")
+                    # Chia nội dung thành các đoạn 1000 ký tự
+                    chunk_size = 500
+                    chunks = [content[i:i + chunk_size] for i in range(0, len(content), chunk_size)]
+
+                    # Thêm vào document_content
+                    document_content.extend(chunks)
+                    logger.info(f"Đã đọc nội dung Markdown từ {file_pdf_all_downloaded}")
+                else:
+                    # Đọc nội dung PDF theo trang
+                    with fitz.open(file_pdf_all_downloaded) as pdf_document:
+                        for page in pdf_document:
+                            document_content.append(page.get_text("text"))
+                    logger.info(f"Đã đọc nội dung PDF từ {file_pdf_all_downloaded}")
+            except Exception as e:
+                logger.error(f"Lỗi khi đọc nội dung từ file {file_pdf_all_downloaded}: {str(e)}")
+
+            # with fitz.open(file_pdf_all_downloaded) as pdf_document:
+            #     for page in pdf_document:
+            #         document_content.append(page.get_text("text"))
             # 2. Tải 3 file MD (bao gồm một file HSKT, TBMT và chương 3 của HSMT)
             document_content_markdown_tbmt = ""
             document_content_markdown_hskt = ""
@@ -140,6 +169,7 @@ class PrepareDataDocumentNodeV1:
                 "document_content_markdown_hsmt": document_content_markdown_hsmt
             }
         except Exception as e:
+            print(f"error: {str(e)}, Traceback: {traceback.format_exc()}")
             error_msg = format_error_message(
                 node_name=self.name,
                 e=e,

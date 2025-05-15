@@ -755,13 +755,9 @@ def main_test():
             output_format='text',
             batch_size=BATCH_SIZE,
             debug_mode=True,
-            max_workers=3  # Adjust based on your machine's capabilities
+            max_workers=4  # Adjust based on your machine's capabilities
         )
 
         # Save the output
         save_output(content, output_file)
         logger.info(f"Saved results to {output_file}")
-
-
-if __name__ == "__main__":
-    main_test()
