@@ -761,7 +761,3 @@ def main_test():
         # Save the output
         save_output(content, output_file)
         logger.info(f"Saved results to {output_file}")
-
-
-if __name__ == "__main__":
-    main_test()
