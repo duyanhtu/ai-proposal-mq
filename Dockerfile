@@ -29,6 +29,7 @@ COPY celery_worker.py /app/celery_worker.py
 
 # Expose the supervisor web interface port
 EXPOSE 9001
+EXPOSE 5555
 
 # Set the command to run supervisord
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/app.conf"]
