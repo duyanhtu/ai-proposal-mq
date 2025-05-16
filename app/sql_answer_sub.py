@@ -3,7 +3,8 @@ import os
 import signal
 import sys
 
-from app.config import langfuse_handler
+from celery.result import AsyncResult
+
 from app.config.env import EnvSettings
 from app.mq.rabbit_mq import RabbitMQClient
 from app.nodes.agentic_sql_finance.sql_team_v1_0_1 import (
@@ -14,6 +15,36 @@ from app.utils.logger import get_logger
 
 # Initialize logger
 logger = get_logger(__name__)
+
+# Store active tasks for tracking
+active_tasks = {}
+
+
+def get_task_status(hs_id=None, task_id=None):
+    """Get the status of a task by hs_id or task_id"""
+    if hs_id and hs_id in active_tasks:
+        task_id = active_tasks[hs_id]
+
+    if not task_id:
+        return {"status": "unknown", "info": "Task not found"}
+
+    result = AsyncResult(task_id)
+
+    status_info = {
+        "task_id": task_id,
+        "status": result.status,
+    }
+
+    # Add more details based on task state
+    if result.status == 'PROGRESS':
+        status_info.update(result.info)
+    elif result.status == 'SUCCESS':
+        status_info["result"] = "Task completed successfully"
+    elif result.status == 'FAILURE':
+        status_info["error"] = str(result.result)
+
+    return status_info
+
 
 MINIO_API_ENDPOINT = EnvSettings().MINIO_API_ENDPOINT  # Cổng API
 MINIO_CONSOLE_ENDPOINT = EnvSettings().MINIO_CONSOLE_ENDPOINT  # Cổng Console (UI)
@@ -111,9 +142,11 @@ def consume_callback(ch, method, properties, body):
                 inputs
             )
             if is_data_extracted_finance:
-                inserted_step_sql_answer = postgre.insertHistorySQL(hs_id=hs_id, step="SQL_ANSWER")
+                inserted_step_sql_answer = postgre.insertHistorySQL(
+                    hs_id=hs_id, step="SQL_ANSWER")
                 if not inserted_step_sql_answer:
-                    print(f"Không insert được trạng thái 'SQL_ANSWER' vào history với hs_id: {hs_id}")
+                    print(
+                        f"Không insert được trạng thái 'SQL_ANSWER' vào history với hs_id: {hs_id}")
             logger.info("[v] Done run graph and inserted finance requirement.")
         except Exception as e:
             logger.error(
@@ -122,9 +155,11 @@ def consume_callback(ch, method, properties, body):
         sql = "SELECT * from email_contents where id = %s"
         params = (res["email_content_id"],)
         email_sql = postgre.selectSQL(sql, params)
-        inserted_step_generate_template = postgre.insertHistorySQL(hs_id=hs_id, step="GENARATE_TEMPLATE")
+        inserted_step_generate_template = postgre.insertHistorySQL(
+            hs_id=hs_id, step="GENARATE_TEMPLATE")
         if not inserted_step_generate_template:
-            print(f"Không insert được trạng thái 'GENARATE_TEMPLATE' vào history với hs_id: {hs_id}")
+            print(
+                f"Không insert được trạng thái 'GENARATE_TEMPLATE' vào history với hs_id: {hs_id}")
         if not email_sql:
             return
         next_queue = RABBIT_MQ_SEND_MAIL_QUEUE

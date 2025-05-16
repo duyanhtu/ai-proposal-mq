@@ -3,26 +3,60 @@ import os
 import signal
 import sys
 import traceback
-from app.config import langfuse_handler
+
+from celery.result import AsyncResult
+
 from app.config.env import EnvSettings
 from app.mq.rabbit_mq import RabbitMQClient
 from app.storage import postgre
-from app.nodes.agentic_sql_finance.sql_team_v1_0_1 import (
-    sql_team_graph_v1_0_1_instance,
-)
-from app.utils.smtp_mail import send_email_with_attachments
+from app.utils.logger import get_logger
+from app.utils.mail import send_email_with_attachments
+
+# Initialize logger
+logger = get_logger(__name__)
+
+# Store active tasks for tracking
+active_tasks = {}
+
+
+def get_task_status(hs_id=None, task_id=None):
+    """Get the status of a task by hs_id or task_id"""
+    if hs_id and hs_id in active_tasks:
+        task_id = active_tasks[hs_id]
+
+    if not task_id:
+        return {"status": "unknown", "info": "Task not found"}
+
+    result = AsyncResult(task_id)
+
+    status_info = {
+        "task_id": task_id,
+        "status": result.status,
+    }
+
+    # Add more details based on task state
+    if result.status == 'PROGRESS':
+        status_info.update(result.info)
+    elif result.status == 'SUCCESS':
+        status_info["result"] = "Task completed successfully"
+    elif result.status == 'FAILURE':
+        status_info["error"] = str(result.result)
+
+    return status_info
+
+
 MINIO_API_ENDPOINT = EnvSettings().MINIO_API_ENDPOINT  # Cổng API
 MINIO_CONSOLE_ENDPOINT = EnvSettings().MINIO_CONSOLE_ENDPOINT  # Cổng Console (UI)
 MINIO_ACCESS_KEY = EnvSettings().MINIO_ACCESS_KEY
 MINIO_SECRET_KEY = EnvSettings().MINIO_SECRET_KEY
-MINIO_SECURE = EnvSettings().MINIO_SECURE 
+MINIO_SECURE = EnvSettings().MINIO_SECURE
 
 # Khởi tạo RabbitMQClient dùng chung
 RABBIT_MQ_HOST = EnvSettings().RABBIT_MQ_HOST
 RABBIT_MQ_PORT = EnvSettings().RABBIT_MQ_PORT
 RABBIT_MQ_USER = EnvSettings().RABBIT_MQ_USER
 RABBIT_MQ_PASS = EnvSettings().RABBIT_MQ_PASS
-RABBIT_MQ_SEND_MAIL_QUEUE=  EnvSettings().RABBIT_MQ_SEND_MAIL_QUEUE
+RABBIT_MQ_SEND_MAIL_QUEUE = EnvSettings().RABBIT_MQ_SEND_MAIL_QUEUE
 
 # Khởi tạo RabbitMQClient dùng chung
 rabbit_mq = RabbitMQClient(
@@ -44,12 +78,12 @@ def consume_callback(ch, method, properties, body):
     try:
         message = json.loads(body.decode('utf-8'))  # Giải mã JSON
         print(f" [x] Received: {message}\n")
-        hs_id=message.get("hs_id", "")
-        proposal_id=message.get("proposal_id", "")
-        subject=message.get("subject", "")
-        body=message.get("body", "")
-        recipient=message.get("recipient", "")
-        attachment_paths=message.get("attachment_paths", None)
+        hs_id = message.get("hs_id", "")
+        proposal_id = message.get("proposal_id", "")
+        subject = message.get("subject", "")
+        body = message.get("body", "")
+        recipient = message.get("recipient", "")
+        attachment_paths = message.get("attachment_paths", None)
         response = send_email_with_attachments(
             email_address=EnvSettings().GMAIL_ADDRESS,
             app_password=EnvSettings().GMAIL_APP_PASSWORD,
@@ -69,9 +103,11 @@ def consume_callback(ch, method, properties, body):
                 params12 = (hs_id,)
                 postgre.executeSQL(sql12, params12)
                 print(" [v] Email sent successfully")
-                inserted_step_send_mail = postgre.insertHistorySQL(hs_id=hs_id, step="SENT_MAIL")
+                inserted_step_send_mail = postgre.insertHistorySQL(
+                    hs_id=hs_id, step="SENT_MAIL")
                 if not inserted_step_send_mail:
-                    print("Không insert được trạng thái 'SENT_MAIL' vào history với hs_id: %s", hs_id)
+                    print(
+                        "Không insert được trạng thái 'SENT_MAIL' vào history với hs_id: %s", hs_id)
             else:
                 sql13 = "UPDATE email_contents SET status='XU_LY_LOI', end_process_date = now() AT TIME ZONE 'UTC' WHERE hs_id=%s"
                 params13 = (hs_id,)
@@ -83,14 +119,19 @@ def consume_callback(ch, method, properties, body):
                 if file_path and os.path.exists(file_path):
                     os.remove(file_path)
                     print(f"Deleted file: {file_path}")
-        inserted_step_compelete = postgre.insertHistorySQL(hs_id=hs_id, step="COMPELETE")
+        inserted_step_compelete = postgre.insertHistorySQL(
+            hs_id=hs_id, step="COMPELETE")
         if not inserted_step_compelete:
-            print("Không insert được trạng thái 'COMPELETE' vào history với hs_id: %s", hs_id)
+            print(
+                "Không insert được trạng thái 'COMPELETE' vào history với hs_id: %s", hs_id)
         return {"status": "success", "message": "Thành công"}
     except json.JSONDecodeError:
-        print(f" [!] Error: Invalid JSON format: {body}", traceback.format_exc())
+        print(
+            f" [!] Error: Invalid JSON format: {body}", traceback.format_exc())
     except Exception:
-        print(f" [!] Error: Something was wrong: {body}", traceback.format_exc())
+        print(
+            f" [!] Error: Something was wrong: {body}", traceback.format_exc())
+
 
 def send_mail_sub():
     """
@@ -99,30 +140,27 @@ def send_mail_sub():
     # Define signal handler for graceful shutdown
     def signal_handler(sig, frame):
         sys.exit(0)
- 
+
     # Register the signal handler for SIGINT (Ctrl+C)
     signal.signal(signal.SIGINT, signal_handler)
     queue = RABBIT_MQ_SEND_MAIL_QUEUE
     rabbit_mq.start_consumer(queue, consume_callback)
 
 
-
 # Update back to database
-        # Probarly using procedure here but not now
-        # if response["success"]:
-        #     sql = "UPDATE proposal SET status='EXPORTED' WHERE id=%s"
-        #     params = (results[0]["id"],)
-        #     executeSQL(sql, params)
+    # Probarly using procedure here but not now
+    # if response["success"]:
+    #     sql = "UPDATE proposal SET status='EXPORTED' WHERE id=%s"
+    #     params = (results[0]["id"],)
+    #     executeSQL(sql, params)
 
-        #     # Update email contents
-        #     sql12 = "UPDATE email_contents SET status='DA_XU_LY' WHERE hs_id=%s"
-        #     params12 = (state["hs_id"],)
-        #     executeSQL(sql12, params12)
-        #=====================================
-        # Xóa các file đã tạo sau khi gửi email
-        # for file_path in temp_file_path:
-        #     if file_path and os.path.exists(file_path):
-        #         os.remove(file_path)
-        #         print(f"Deleted file: {file_path}")
-
-
+    #     # Update email contents
+    #     sql12 = "UPDATE email_contents SET status='DA_XU_LY' WHERE hs_id=%s"
+    #     params12 = (state["hs_id"],)
+    #     executeSQL(sql12, params12)
+    # =====================================
+    # Xóa các file đã tạo sau khi gửi email
+    # for file_path in temp_file_path:
+    #     if file_path and os.path.exists(file_path):
+    #         os.remove(file_path)
+    #         print(f"Deleted file: {file_path}")

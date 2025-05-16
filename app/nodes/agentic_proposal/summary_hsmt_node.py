@@ -1,5 +1,6 @@
 # Standard imports
 import time
+
 # Third party imports
 from langchain_core.prompts import ChatPromptTemplate
 
@@ -10,6 +11,7 @@ from app.nodes.states.state_proposal_v1 import StateProposalV1
 from app.utils.logger import get_logger
 
 logger = get_logger("except_handling_extraction")
+
 
 class SummaryHSMTNodeV1m0p0:
     """
@@ -73,9 +75,11 @@ class SummaryHSMTNodeV1m0p0:
                     {content}
             """
 
-            chat_prompt_template = ChatPromptTemplate.from_template(prompt_template)
+            chat_prompt_template = ChatPromptTemplate.from_template(
+                prompt_template)
 
-            prompt = chat_prompt_template.invoke({"content": "\n".join(chapter_content)})
+            prompt = chat_prompt_template.invoke(
+                {"content": "\n".join(chapter_content)})
 
             response = (
                 llm.chat_model_gpt_4o_mini_16k()
@@ -89,13 +93,14 @@ class SummaryHSMTNodeV1m0p0:
             error_msg = format_error_message(
                 node_name=self.name,
                 e=e,
-                context=f"hs_id: {state.get('hs_id', '')}", 
+                context=f"hs_id: {state.get('hs_id', '')}",
                 include_trace=True
             )
             return {
                 "summary_hsmt": "",
                 "error_messages": [error_msg],
             }
+
 
 class SummaryHSMTNodeV1m0p1:
     """
@@ -172,7 +177,8 @@ class SummaryHSMTNodeV1m0p1:
                 {content}
         """
 
-        chat_prompt_template = ChatPromptTemplate.from_template(prompt_template)
+        chat_prompt_template = ChatPromptTemplate.from_template(
+            prompt_template)
 
         prompt = chat_prompt_template.invoke({"content": chapter_content})
 

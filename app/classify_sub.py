@@ -3,11 +3,11 @@ import os
 import signal
 import sys
 
+from celery.result import AsyncResult
+
 from app.config.env import EnvSettings
 from app.mq.rabbit_mq import RabbitMQClient
-from app.storage.postgre import insertHistorySQL
-from app.utils.classify import classify
-from app.utils.smtp_mail import send_email_with_attachments
+from app.tasks.classify_task import classify_task
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -40,6 +40,35 @@ template_file_path = os.path.join(
     "temp"
 )
 
+# Store active tasks for tracking
+active_tasks = {}
+
+
+def get_task_status(hs_id=None, task_id=None):
+    """Get the status of a task by hs_id or task_id"""
+    if hs_id and hs_id in active_tasks:
+        task_id = active_tasks[hs_id]
+
+    if not task_id:
+        return {"status": "unknown", "info": "Task not found"}
+
+    result = AsyncResult(task_id)
+
+    status_info = {
+        "task_id": task_id,
+        "status": result.status,
+    }
+
+    # Add more details based on task state
+    if result.status == 'PROGRESS':
+        status_info.update(result.info)
+    elif result.status == 'SUCCESS':
+        status_info["result"] = "Task completed successfully"
+    elif result.status == 'FAILURE':
+        status_info["error"] = str(result.result)
+
+    return status_info
+
 
 # def consume_callback(ch, method, properties, body):
 def consume_callback(ch, method, properties, body):
@@ -62,51 +91,34 @@ def consume_callback(ch, method, properties, body):
             - classify_type: là trường classify_type trong bảng email_contents.
             - file_name: tên file được lưu trong minio.
             - markdown_link: liên kết đến tài liệu markdown tương ứng."""
-    message = json.loads(body.decode("utf-8"))  # Giải mã JSON
-    print(f" [x] Received: {message}")
-    hs_id = message["id"]
-    email = message["email"]
+    try:
+        # Parse the message
+        message = json.loads(body.decode('utf-8'))
+        logger.info(f" [x] Received: {message}\n")
 
-    result = classify(hs_id, email)
-    status = result["status"]
-    message = result["message"]
-    if status == "success":
-        print(f" [x] Classify success: {message}")
-        inserted_step_classify = insertHistorySQL(hs_id=hs_id, step="CLASSIFY")
-        if not inserted_step_classify:
-            print("Không insert được trạng thái 'CLASSIFY' vào history với hs_id: %s", hs_id)
-        next_queue = RABBIT_MQ_CHAPTER_SPLITER_QUEUE
-        rabbit_mq.publish(next_queue, message)
-    else:
-        print(f" [x] Classify failed: {message}")
-        """ next_queue = RABBIT_MQ_SEND_MAIL_QUEUE
-        message = {
-            "email_content_id": "",
-            "proposal_id": "",
-            "subject": f"Kết quả bóc tách dữ liệu không thành công – Cần kiểm tra lại {hs_id}",
-            "body": 
-                    Kính gửi Anh/Chị,
-                    Hệ thống đã gặp lỗi trong quá trình bóc tách dữ liệu. Vui lòng kiểm tra lại nội dung tài liệu đã tải lên và thử lại.
-                    Trân trọng,
-                    ,
-            "recipient": email,
-            "attachment_paths": []
-        }
-        rabbit_mq.publish(next_queue, message) """
-        result = send_email_with_attachments(
-            email_address=EnvSettings().GMAIL_ADDRESS,
-            app_password=EnvSettings().GMAIL_APP_PASSWORD,
-            subject=f"Kết quả bóc tách dữ liệu không thành công – Cần kiểm tra lại {hs_id}",
-            body="""
-                    Kính gửi Anh/Chị,
-                    Hệ thống đã gặp lỗi trong quá trình bóc tách dữ liệu. Vui lòng kiểm tra lại nội dung tài liệu đã tải lên và thử lại.
-                    Trân trọng,
-                """,
-            recipient=email,
-        )
+        hs_id = message.get("hs_id")
+        email = message.get("email")
 
-        logger.info(
-            f"Email sent to {email} regarding hs_id {hs_id} with result: {result}")
+        if not hs_id or not email:
+            raise ValueError("Missing required fields: hs_id or email")
+
+        # Acknowledge the message immediately to prevent requeuing
+        ch.basic_ack(delivery_tag=method.delivery_tag)
+
+        # Submit the task to Celery
+        task = classify_task.delay(hs_id, email)
+
+        # Store task ID for tracking
+        active_tasks[hs_id] = task.id
+
+        logger.info(f"Started Celery task {task.id} for hs_id {hs_id}")
+
+    except json.JSONDecodeError:
+        logger.error(f" [!] Error: Invalid JSON format: {body}", exc_info=True)
+        ch.basic_ack(delivery_tag=method.delivery_tag)
+    except Exception as e:
+        logger.error(f" [!] Error: {str(e)}", exc_info=True)
+        ch.basic_ack(delivery_tag=method.delivery_tag)
 
 
 def classify_sub():

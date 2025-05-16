@@ -4,6 +4,7 @@ import signal
 import sys
 
 import fitz
+from celery.result import AsyncResult
 
 from app.config.env import EnvSettings
 from app.mq.rabbit_mq import RabbitMQClient
@@ -21,7 +22,38 @@ from app.utils.extract_by_chapter_md import (
 from app.utils.logger import get_logger
 from app.utils.minio import upload_to_minio
 
+# Initialize logger
 logger = get_logger(__name__)
+
+# Store active tasks for tracking
+active_tasks = {}
+
+
+def get_task_status(hs_id=None, task_id=None):
+    """Get the status of a task by hs_id or task_id"""
+    if hs_id and hs_id in active_tasks:
+        task_id = active_tasks[hs_id]
+
+    if not task_id:
+        return {"status": "unknown", "info": "Task not found"}
+
+    result = AsyncResult(task_id)
+
+    status_info = {
+        "task_id": task_id,
+        "status": result.status,
+    }
+
+    # Add more details based on task state
+    if result.status == 'PROGRESS':
+        status_info.update(result.info)
+    elif result.status == 'SUCCESS':
+        status_info["result"] = "Task completed successfully"
+    elif result.status == 'FAILURE':
+        status_info["error"] = str(result.result)
+
+    return status_info
+
 
 # MinIO configuration - sử dụng cổng 9000 cho API S3
 MINIO_API_ENDPOINT = EnvSettings().MINIO_API_ENDPOINT  # Cổng API
