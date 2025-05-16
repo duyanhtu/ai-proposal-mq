@@ -19,6 +19,7 @@ def classify_task(self, hs_id: str, email: str):
         dict: Classification results
     """
     try:
+        logger.info(f"Starting classification for hs_id: {hs_id}")
         # Call the classify function
         result = classify(hs_id=hs_id, email=email)
 
@@ -27,7 +28,7 @@ def classify_task(self, hs_id: str, email: str):
             'status': 'Processing',
             'progress': 100 if result['status'] == 'success' else 0
         })
-
+        logger.info(f"Classification completed for hs_id: {hs_id}")
         return result
     except Exception as e:
         logger.error(f"Error in classify task: {str(e)}")

@@ -96,15 +96,14 @@ def consume_callback(ch, method, properties, body):
         message = json.loads(body.decode('utf-8'))
         logger.info(f" [x] Received: {message}\n")
 
-        hs_id = message.get("hs_id")
+        hs_id = message.get("id")
         email = message.get("email")
 
         if not hs_id or not email:
             raise ValueError("Missing required fields: hs_id or email")
 
-        # Acknowledge the message immediately to prevent requeuing
-        ch.basic_ack(delivery_tag=method.delivery_tag)
-
+        """ # Acknowledge the message immediately to prevent requeuing
+        ch.basic_ack(delivery_tag=method.delivery_tag) """
         # Submit the task to Celery
         task = classify_task.delay(hs_id, email)
 
@@ -115,10 +114,10 @@ def consume_callback(ch, method, properties, body):
 
     except json.JSONDecodeError:
         logger.error(f" [!] Error: Invalid JSON format: {body}", exc_info=True)
-        ch.basic_ack(delivery_tag=method.delivery_tag)
+        # ch.basic_ack(delivery_tag=method.delivery_tag)
     except Exception as e:
         logger.error(f" [!] Error: {str(e)}", exc_info=True)
-        ch.basic_ack(delivery_tag=method.delivery_tag)
+        # ch.basic_ack(delivery_tag=method.delivery_tag)
 
 
 def classify_sub():
@@ -134,4 +133,4 @@ def classify_sub():
     signal.signal(signal.SIGINT, signal_handler)
 
     queue = RABBIT_MQ_CLASSIFY_QUEUE
-    rabbit_mq.start_consumer(queue, consume_callback, auto_ack=True)
+    rabbit_mq.start_consumer(queue, consume_callback, auto_ack=False)

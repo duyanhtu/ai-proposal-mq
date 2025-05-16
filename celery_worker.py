@@ -1,4 +1,7 @@
+
 from app.config.celery import app
 
 if __name__ == '__main__':
-    app.worker_main(argv=['worker', '--loglevel=info'])
+    # Start Celery worker with logging
+    app.worker_main(argv=['worker', '--loglevel=info',
+                    '-P', 'gevent'])
