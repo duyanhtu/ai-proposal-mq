@@ -24,6 +24,8 @@ COPY .env /app/.env
 COPY ./main_*.py /app/
 COPY ./temp /app/temp
 COPY ./logs /app/logs
+# Add celery worker
+COPY celery_worker.py /app/celery_worker.py  
 
 # Expose the supervisor web interface port
 EXPOSE 9001
