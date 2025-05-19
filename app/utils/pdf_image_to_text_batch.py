@@ -30,7 +30,7 @@ model = genai.GenerativeModel('gemini-1.5-flash')
 # Define input and output directories
 DATA_DIR = Path("data")
 RESULTS_DIR = Path("results")
-BATCH_SIZE = 1  # Number of images per batch
+BATCH_SIZE = 2  # Number of images per batch
 
 
 def convert_image_to_base64(image):
@@ -445,7 +445,7 @@ def rotate_table_image(img, debug_mode=False):
     return img
 
 
-def convert_pdf_to_text(pdf_path, output_format='text', batch_size=BATCH_SIZE, debug_mode=False, max_workers=3):
+def convert_pdf_to_text(pdf_path, output_format='text', batch_size=BATCH_SIZE, debug_mode=False, max_workers=2):
     """
     Convert PDF images to text or markdown using Google Gemini Vision API
     Processing pages in batches in parallel while preserving order
@@ -503,7 +503,7 @@ If an image is unclear, indicate this in your output rather than guessing the co
     # Adjust batch size based on document complexity
     if total_pages > 20:
         # For large documents, use smaller batches
-        batch_size = min(batch_size, 1)
+        batch_size = min(batch_size, 2)
 
     # Prepare batches for parallel processing
     batches = []
@@ -761,7 +761,3 @@ def main_test():
         # Save the output
         save_output(content, output_file)
         logger.info(f"Saved results to {output_file}")
-
-
-if __name__ == "__main__":
-    main_test()
