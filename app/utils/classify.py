@@ -6,6 +6,7 @@ import tempfile
 # Add these imports at the top of your file
 import time
 import traceback  # Add these imports at the top of your file
+from typing import Any, Dict
 import uuid
 
 import fitz
@@ -681,3 +682,21 @@ def extract_text_from_docx(docx_path):
     except Exception as e:
         logger.error(f"Error extracting text from DOCX: {str(e)}")
         return ""
+
+# Created by TUTDA
+def check_hsmt_file_type(files_object: dict) -> Dict[str, Any]:
+    """
+    Description:
+        - Kiểm tra số lượng file_type 'HSMT' trong files_object["files"].
+        - Nếu nhiều hơn 2 file HSMT thì trả về lỗi, ngược lại trả về thành công.
+    Args:
+        files_object: List of dictionaries containing file information
+
+    Returns:
+        dict: {"status": str, "message": Any}
+    """
+    files = files_object.get("files", [])
+    hsmt_count = sum(1 for f in files if f.get("file_type") == "HSMT")
+    if hsmt_count > 1:
+        return {"status": "error", "message": "There is more than one file with type 'HSMT'"}
+    return {"status": "success", "message": files_object}

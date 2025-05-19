@@ -969,22 +969,23 @@ class ExtractionTechnologyNodeV1m0p2:
 
                 # Gộp sub_requirements
                 if "requirement_level_0" in item:
-                    sub_reqs = item["requirement_level_0"].get(
-                        "sub_requirements", [])
-                    for sub_req in sub_reqs:
-                        # Kiểm tra trùng lặp dựa trên muc của requirement_level_1
-                        sub_muc = sub_req.get(
-                            "requirement_level_1", {}).get("muc", "")
-                        if sub_muc and sub_muc not in sub_req_muc_seen:
-                            sub_req_muc_seen.add(sub_muc)
-                            merged["requirement_level_0"]["sub_requirements"].append(
-                                sub_req)
-
+                    # sub_reqs = item["requirement_level_0"].get(
+                    #     "sub_requirements", [])
+                    # for sub_req in sub_reqs:
+                    #     # Kiểm tra trùng lặp dựa trên muc của requirement_level_1
+                    #     sub_muc = sub_req.get(
+                    #         "requirement_level_1", {}).get("muc", "")
+                    #     if sub_muc and sub_muc not in sub_req_muc_seen:
+                    #         sub_req_muc_seen.add(sub_muc)
+                    #         merged["requirement_level_0"]["sub_requirements"].append(
+                    #             sub_req)
+                    sub_reqs = item.get("requirement_level_0", {}).get("sub_requirements", [])
+                    merged["requirement_level_0"]["sub_requirements"].extend(sub_reqs)
             # Sắp xếp để đảm bảo đầu ra nhất quán
-            merged["hr"].sort(key=lambda x: x["position"])
-            merged["requirement_level_0"]["sub_requirements"].sort(
-                key=lambda x: x["requirement_level_1"]["muc"]
-            )
+            # merged["hr"].sort(key=lambda x: x["position"])
+            # merged["requirement_level_0"]["sub_requirements"].sort(
+            #     key=lambda x: x["requirement_level_1"]["muc"]
+            # )
             return {"result_extraction_technology": merged}
         except Exception as e:
             error_msg = format_error_message(
