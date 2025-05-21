@@ -6,10 +6,11 @@ import tempfile
 # Add these imports at the top of your file
 import time
 import traceback  # Add these imports at the top of your file
-from typing import Any, Dict
 import uuid
+from typing import Any, Dict
 
 import fitz
+import pymupdf4llm
 from minio.error import S3Error
 
 from app.config.env import EnvSettings
@@ -103,10 +104,12 @@ def classify(hs_id: str, email: str):
                         # Handle text-based PDF
                         logger.info(
                             f"File {file_name} is a text PDF, proceeding with classification.")
-                        classify_type = "TEXT"
+                        # classify_type = "TEXT"
+                        classify_type = "IMAGE"
 
                         # Extract text from text-based PDF
-                        extracted_text = extract_text_from_pdf(temp_file_path)
+                        extracted_text = pymupdf4llm.to_markdown(
+                            temp_file_path)
 
                 elif file_ext == '.docx':
                     # Handle DOCX file
@@ -179,7 +182,8 @@ def classify(hs_id: str, email: str):
 
                         if doc_type != "unknown":
                             files_object.append({
-                                "id": id, "file_name": file_name, "file_type": doc_type,
+                                "email_content_id": id,
+                                "bucket": link.split("/")[0], "file_name": file_name, "file_type": doc_type,
                                 "file_path": link, "classify_type": classify_type,
                                 "markdown_link": markdown_link
                             })
@@ -197,11 +201,11 @@ def classify(hs_id: str, email: str):
 
                     if doc_type != "unknown":
                         files_object.append({
-                            "id": id, "file_name": file_name, "file_type": doc_type,
+                            "email_content_id": id,
+                            "bucket": link.split("/")[0], "file_name": file_name, "file_type": doc_type,
                             "file_path": link, "classify_type": classify_type,
                             "markdown_link": ""
                         })
-
             except S3Error as e:
                 error_msg = f"Error downloading file {file_name}: {str(e)}"
                 logger.error(error_msg)
@@ -233,7 +237,6 @@ def classify(hs_id: str, email: str):
         logger.debug(f"Files object: {files_object}")
         message = {
             "id": hs_id,
-            "bucket": MINIO_BUCKET,
             "files": files_object,
         }
         return {"status": "success", "message": message}
@@ -689,6 +692,8 @@ def extract_text_from_docx(docx_path):
         return ""
 
 # Created by TUTDA
+
+
 def check_hsmt_file_type(files_object: dict) -> Dict[str, Any]:
     """
     Description:
@@ -707,7 +712,7 @@ def check_hsmt_file_type(files_object: dict) -> Dict[str, Any]:
     tct_count = sum(1 for f in files if f.get("file_type") == "TCT")
     if (hsmt_count == 1 and tct_count == 0) or (tct_count == 1 and hsmt_count == 0):
         return {"status": "success", "message": files_object}
-    
+
     return {
         "status": "error",
         "message": f"Invalid file types. Expected exactly 1 'HSMT' or 1 'TCT'. Found HSMT: {hsmt_count}, TCT: {tct_count}."

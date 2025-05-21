@@ -38,6 +38,7 @@ RABBIT_MQ_PASS = EnvSettings().RABBIT_MQ_PASS
 RABBIT_MQ_CHPATER_SPLITER_QUEUE = EnvSettings().RABBIT_MQ_CHPATER_SPLITER_QUEUE
 RABBIT_MQ_MARKDOWN_QUEUE = EnvSettings().RABBIT_MQ_MARKDOWN_QUEUE
 RABBIT_MQ_SEND_MAIL_QUEUE = EnvSettings().RABBIT_MQ_SEND_MAIL_QUEUE
+RABBIT_MQ_EXTRACTION_QUEUE = EnvSettings().RABBIT_MQ_EXTRACTION_QUEUE
 # Khởi tạo RabbitMQClient dùng chung
 rabbit_mq = RabbitMQClient(
     host=RABBIT_MQ_HOST,
@@ -90,50 +91,73 @@ def extract_and_filter_chapters_md(file_path):
     return [ChapterMap(name=ch["title"], page_start=ch["line"]) for ch in real_chapters]
 
 
-def process_file_md(download_path, keyword):
+def process_file_md(download_path, keyword_type_map):
     """
-    Hàm process_file_md:
+    Hàm process_file_md cải tiến với map keyword-type:
     - Input:
         - download_path: đường dẫn đến file markdown được download từ minio
-        - keyword: key để lọc theo chương khi chạy qua hàm extract_and_filter_chapters_md
+        - keyword_type_map: Dict hoặc List các Dict chứa keyword và type tương ứng
+          Ví dụ: [{"keyword": "1", "type": "1type"}, {"keyword": ["2", "3"], "type": "23type"}]
     - Output:
         - trả về một List[Dict] có:
             - name: tên chương
             - page_start: số dòng bắt đầu của chương
             - path: đường dẫn của file chương trong thư mục Temp
+            - type: loại của chương tương ứng với keyword matched
     """
     # Lấy danh sách các chương
     chapters = extract_and_filter_chapters_md(download_path)
     results = []
 
-    # Tìm các chương thỏa mãn keyword
-    for idx, chapter in enumerate(chapters):
-        # Kiểm tra nếu có keyword trong tên chương
-        if keyword.lower() in chapter.name.lower():
-            # Lấy chi tiết của chương đó
-            chapter_content = extract_chapter_smart_md(
-                download_path,
-                chapter_title=chapter.name
-            )
+    # Chuẩn hóa keyword_type_map thành list nếu đầu vào là dict đơn lẻ
+    if isinstance(keyword_type_map, dict):
+        keyword_type_map = [keyword_type_map]
 
-            if chapter_content:
-                # Tạo file tạm cho chương
-                file_dir = os.path.dirname(download_path)
-                file_name = os.path.basename(download_path).split(".")[0]
-                temp_file_path = os.path.join(
-                    file_dir,
-                    f"{file_name}_chapter_{idx+1}.md"
+    # Duyệt qua từng chương
+    for idx, chapter in enumerate(chapters):
+        # Kiểm tra từng cặp keyword-type
+        for kw_type in keyword_type_map:
+            keywords = kw_type.get("keyword", "")
+            chapter_type = kw_type.get("type", "default_type")
+
+            # Kiểm tra nếu keywords là string đơn
+            if isinstance(keywords, str) and keywords.lower() in chapter.name.lower():
+                matched = True
+            # Kiểm tra nếu keywords là list
+            elif isinstance(keywords, list) and any(kw.lower() in chapter.name.lower() for kw in keywords):
+                matched = True
+            else:
+                matched = False
+
+            if matched:
+                # Lấy chi tiết của chương đó
+                chapter_content = extract_chapter_smart_md(
+                    download_path,
+                    chapter_title=chapter.name
                 )
 
-                # Ghi nội dung chương vào file
-                with open(temp_file_path, "w", encoding="utf-8") as f:
-                    f.write(chapter_content["content"])
+                if chapter_content:
+                    # Tạo file tạm cho chương
+                    file_dir = os.path.dirname(download_path)
+                    file_name = os.path.basename(download_path).split(".")[0]
+                    temp_file_path = os.path.join(
+                        file_dir,
+                        f"{file_name}_chapter_{idx+1}.md"
+                    )
 
-                results.append({
-                    "name": chapter.name,
-                    "page_start": chapter.page_start,
-                    "path": temp_file_path
-                })
+                    # Ghi nội dung chương vào file
+                    with open(temp_file_path, "w", encoding="utf-8") as f:
+                        f.write(chapter_content["content"])
+
+                    results.append({
+                        "name": chapter.name,
+                        "page_start": chapter.page_start,
+                        "path": temp_file_path,
+                        "type": chapter_type
+                    })
+
+                # Break để không kiểm tra các keyword khác nếu đã match
+                break
 
     return results
 
@@ -188,37 +212,41 @@ def consume_callback(ch, method, properties, body):
             logger.warning(" [!] Không tìm thấy file nào!")
             return
         # Tạo mapping {file_path: email_content_id} từ message
-        original_file_paths = {file["file_type"]: file["id"] for file in files}
+        original_file_paths = {file["file_type"]: file["email_content_id"] for file in files}
 
         print(" [x] Original file paths: ", original_file_paths)
         files_object = []
-        keyword = "tiêu chuẩn đánh giá"
+        keyword_type_map = [
+            {"keyword": "tiêu chuẩn đánh giá", "type": "TCDG"},
+            {"keyword": ["đánh giá", "yêu cầu về kỹ thuật"],
+                "type": "YCKT"}
+        ]
         for f in files:
-            email_content_id = f["id"]
+            email_content_id = f["email_content_id"]
             file_name = f["file_path"].split("/")[-1]
             file_type = f["file_type"]
             file_path = f["file_path"]
             classify_type = f["classify_type"]
             markdown_link = f["markdown_link"]
             if file_type == "HSMT":
-                if classify_type == "TEXT":
+                if classify_type == "TEXTABC":
                     # Tải thư mục từ link trong bảng email contents
                     file_downloaded = download_file_from_minio(
                         filename=file_path)
                     download_path = file_downloaded["download_path"].replace(
                         "\\", "/")
                     # Chia thành các file nhỏ hơn và lưu vào Temp
-                    results_processed_chapter = process_file(
-                        download_path, keyword)
+                    """ results_processed_chapter = process_file(
+                        download_path, keyword) """
                 else:
                     # Tải file từ link trong bảng email contents
                     file_downloaded = download_file_from_minio(
-                        filename=markdown_link, bucket="markdown")
+                        filename=markdown_link, bucket=markdown_link.split("/")[0])
                     download_path = file_downloaded["download_path"].replace(
                         "\\", "/")
                     # Chia thành các file nhỏ hơn và lưu vào Temp
                     results_processed_chapter = process_file_md(
-                        download_path, keyword)
+                        download_path, keyword_type_map)
                 # ✅ Chuyển tiếp dữ liệu sang bước tiếp theo: Markdown Queue
                 if len(results_processed_chapter) == 0:
                     # Get sender
@@ -257,52 +285,51 @@ def consume_callback(ch, method, properties, body):
                     return
 
                 for rpc in results_processed_chapter:
-                    if keyword.lower() in rpc["name"].lower():
-                        # file_path_fixed = result["path"].replace("\\", "/").split("/")[-1]
-                        uploaded_files = upload_to_minio(
-                            file_paths=rpc["path"],
-                            bucket_name=MINIO_BUCKET,
-                            minio_endpoint=f"http://{MINIO_API_ENDPOINT}",
-                            access_key=MINIO_ACCESS_KEY,
-                            secret_key=MINIO_SECRET_KEY,
+                    # file_path_fixed = result["path"].replace("\\", "/").split("/")[-1]
+                    uploaded_files = upload_to_minio(
+                        file_paths=rpc["path"],
+                        bucket_name=MINIO_BUCKET,
+                        minio_endpoint=f"http://{MINIO_API_ENDPOINT}",
+                        access_key=MINIO_ACCESS_KEY,
+                        secret_key=MINIO_SECRET_KEY,
+                    )
+                    if uploaded_files:
+                        files_object.append(
+                            {
+                                "file_name": uploaded_files[0].split("/")[-1],
+                                "file_type": file_type,
+                                "file_path": file_path,
+                                "document_detail_id": None,
+                                "classify_type": classify_type,
+                                "markdown_link": uploaded_files[0],
+                                "chapter_name": rpc["type"],
+                            }
                         )
-                        if uploaded_files:
-                            files_object.append(
-                                {
-                                    "bucket": message["bucket"],
-                                    "file_name": uploaded_files[0].split("/")[-1],
-                                    "file_type": file_type,
-                                    "file_path": file_path,
-                                    "document_detail_id": None,
-                                    "classify_type": classify_type,
-                                    "markdown_link": uploaded_files[0],
-                                }
-                            )
-                        else:
-                            logger.error(
-                                f" [!] Upload thất bại với file: {rpc['name']}")
+                    else:
+                        logger.error(
+                            f" [!] Upload thất bại với file: {rpc['name']}")
             else:
                 files_object.append(
                     {
-                        "bucket": message["bucket"],
                         "file_name": file_name,
                         "file_type": file_type,
                         "file_path": file_path,
                         "document_detail_id": None,
                         "classify_type": classify_type,
                         "markdown_link": markdown_link,
+                        "chapter_name": ""
                     }
                 )
 
         for file in files_object:
             email_content_id = original_file_paths.get(file["file_type"], None)
             sql = """
-                INSERT INTO document_detail (email_content_id, file_name, link,link_md)
-                VALUES (%s, %s, %s,%s) 
+                INSERT INTO document_detail (email_content_id, file_name, link,link_md,chapter_name)
+                VALUES (%s, %s, %s,%s,%s) 
                 RETURNING id;
             """
             params = (email_content_id,
-                      file["file_name"], file["file_path"], file["file_path"] if classify_type != 'TEXT' else markdown_link)
+                      file["file_name"], file["file_path"], file["file_path"] if classify_type != 'TEXT' else markdown_link, file["chapter_name"])
             inserted_id = postgre.executeSQL(sql, params)
             if inserted_id:
                 # Gán ID vào files_object
@@ -317,7 +344,7 @@ def consume_callback(ch, method, properties, body):
             print(
                 "Không insert được trạng thái 'CHAPTER_SPLITER' vào history với hs_id: %s", hs_id)
         if files_object:
-            next_queue = RABBIT_MQ_MARKDOWN_QUEUE
+            next_queue = RABBIT_MQ_EXTRACTION_QUEUE
             next_message = {"id": hs_id, "files": files_object}
             rabbit_mq.publish(queue=next_queue, message=next_message)
             logger.info(f" [➡] Forwarded to {next_queue}: {next_message}")
