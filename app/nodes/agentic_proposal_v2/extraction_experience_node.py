@@ -29,7 +29,7 @@ class ExtractionExperienceMDNodeV2m0p0:
         print(self.name)
         try:
             start_time = time.perf_counter()
-            chapter_content = state["document_content_markdown_hsmt"]
+            chapter_content = state["document_content_markdown_tcdg"]
             # Không có chương liên quan để bóc tách
             if len(chapter_content) < 1:
                 return {
@@ -91,7 +91,7 @@ class ExtractionExperienceMDNodeV2m0p0:
                 ]
             )
 
-            prompt = chat_prompt_template.invoke({"content": chapter_content})
+            prompt = chat_prompt_template.invoke({"content": "\n\n".join(chapter_content)})
 
             response = (
                 llm.chat_model_gpt_4o_mini()

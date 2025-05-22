@@ -338,6 +338,8 @@ def extract_chapter_smart(md_path, chapter_num=None, chapter_title=None):
                 "followed_by_blank": followed_by_blank_line
             })
 
+        # Method 3: Check for bold chapter pattern without markdown headings
+
     # De-duplicate and merge results from different methods
     merged_chapters = filter_real_chapters(chapter_candidates)
 

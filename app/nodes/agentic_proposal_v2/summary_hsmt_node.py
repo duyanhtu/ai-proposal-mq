@@ -13,12 +13,10 @@ logger = get_logger("except_handling_extraction")
 
 class SummaryHSMTNodeV2m0p0:
     """
-    class SummaryHSMTNodeV2m0p0:
+        Tóm tắt nội dung file hồ sơ mời thầu
 
-    Tương thích với phiên bản của tutda.
-    Bóc tách thông tin các yêu cầu về yêu cầu kỹ thuật trong hồ sơ mời thầu .
-    - Input: chapter_content: List[str]
-    - Output: result_tecnology_experience: List[ExtractFinanceRequirement]
+        Args:
+            name (str): tên Node
     """
 
     def __init__(self, name: str):
@@ -26,9 +24,24 @@ class SummaryHSMTNodeV2m0p0:
 
     # Defining __call__ method
     def __call__(self, state: StateProposalV1):
+        """
+            Thực hiện tóm tắt nội dung với model.
+            
+            Args:
+                state (StateProposalV1):
+                    state["document_content_markdown_hsmt"] (List[str]): Danh sách nội dung các file HSMT
+            
+            Returns:
+                state (StateProposalV1):
+                    state["summary_hsmt"] (str): Nội dung tóm tắt từ model
+                    state["result_extraction_overview"]  (ExtractOverviewBiddingDocuments): Thông tin chung
+            
+            Exceptions:
+                Nếu có lỗi, các trường sẽ trả về list rỗng và có thêm trường "error_messages".
+        """
         print(self.name)
         start_time = time.perf_counter()
-        chapter_content = "\n".join(state["document_content"])
+        chapter_content = state["document_content_markdown_hsmt"]
         # Không có chương liên quan để bóc tách
         if len(chapter_content) < 0:
             return {
@@ -41,11 +54,11 @@ class SummaryHSMTNodeV2m0p0:
         prompt_template = """
             Bạn là một chuyên gia phân tích tài liệu đấu thầu.
             Nhiệm vụ của bạn là đọc và trích xuất các nội dung quan trọng từ hồ sơ mời thầu để lấy thông tin sau:
-            - Phần `overview` chứa các thông tin chính được trả về dưới dạng JSON.
-            - Phần `summary` là một chuỗi chứa nội dung tóm tắt được định dạng theo cú pháp Markdown, bao gồm các tiêu chí được liệt kê dưới đây.
+            - Phần `result_extraction_overview` chứa các thông tin chính được trả về dưới dạng JSON.
+            - Phần `summary_hsmt` là một chuỗi chứa nội dung tóm tắt được định dạng theo cú pháp Markdown, bao gồm các tiêu chí được liệt kê dưới đây.
             Hãy xác định và trình bày lại các thông tin chính theo cấu trúc JSON sau:
             {{
-                "overview": {{
+                "result_extraction_overview": {{
                     "investor_name": "<Tên chủ đầu tư>",
                     "proposal_name": "<Tên hồ sơ mời thầu hoặc gói thầu>",
                     "project": "<Tên dự án>",
@@ -53,7 +66,7 @@ class SummaryHSMTNodeV2m0p0:
                     "release_date": "<Ngày phát hành hồ sơ mời thầu>",
                     "decision_number": "<Số quyết định phê duyệt>"
                 }},
-                "summary":"
+                "summary_hsmt":"
                     (Tóm tắt hồ sơ mời thầu theo các tiêu chí sau)
                     ### 1.Thông tin chung về gói thầu:
                         - **Tên gói thầu:**
@@ -90,7 +103,7 @@ class SummaryHSMTNodeV2m0p0:
 
         chat_prompt_template = ChatPromptTemplate.from_template(prompt_template)
 
-        prompt = chat_prompt_template.invoke({"content": chapter_content})
+        prompt = chat_prompt_template.invoke({"content": "\n\n".join(chapter_content)})
 
         response = (
             llm.chat_model_gpt_4o_mini_16k().with_structured_output("None", method="json_mode")
@@ -101,6 +114,6 @@ class SummaryHSMTNodeV2m0p0:
         print(f"Total time: {finish_time - start_time} s")
         # return response
         return {
-            "summary_hsmt": response["summary"],
-            "result_extraction_overview": response["overview"],
+            "summary_hsmt": response["summary_hsmt"],
+            "result_extraction_overview": response["result_extraction_overview"],
         }

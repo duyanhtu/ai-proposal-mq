@@ -2,13 +2,13 @@ import json
 import os
 import signal
 import sys
-
+from datetime import datetime
 from app.config.env import EnvSettings
 from app.mq.rabbit_mq import RabbitMQClient
 from app.storage.postgre import insertHistorySQL
-from app.utils.classify import classify
-from app.utils.smtp_mail import send_email_with_attachments
+from app.utils.classify import check_hsmt_file_type, classify
 from app.utils.logger import get_logger
+from app.utils.smtp_mail import send_email_with_attachments
 
 logger = get_logger(__name__)
 
@@ -24,7 +24,7 @@ RABBIT_MQ_PORT = EnvSettings().RABBIT_MQ_PORT
 RABBIT_MQ_USER = EnvSettings().RABBIT_MQ_USER
 RABBIT_MQ_PASS = EnvSettings().RABBIT_MQ_PASS
 RABBIT_MQ_CLASSIFY_QUEUE = EnvSettings().RABBIT_MQ_CLASSIFY_QUEUE
-RABBIT_MQ_CHAPTER_SPLITER_QUEUE = EnvSettings().RABBIT_MQ_CHPATER_SPLITER_QUEUE
+RABBIT_MQ_MARKDOWN_QUEUE = EnvSettings().RABBIT_MQ_MARKDOWN_QUEUE
 RABBIT_MQ_SEND_MAIL_QUEUE = EnvSettings().RABBIT_MQ_SEND_MAIL_QUEUE
 
 # Khởi tạo RabbitMQClient dùng chung
@@ -66,16 +66,26 @@ def consume_callback(ch, method, properties, body):
     print(f" [x] Received: {message}")
     hs_id = message["id"]
     email = message["email"]
-
+    # Tutda edit
+    send_email_with_attachments(
+        email_address=EnvSettings().GMAIL_ADDRESS,
+        app_password=EnvSettings().GMAIL_APP_PASSWORD,
+        subject="Hồ sơ mới đã được gửi đến hệ thống",
+        body=f"Hệ thống ghi nhận có hồ sơ {hs_id} gửi đến từ {email} vào lúc {datetime.now().strftime("%d-%m-%Y %H:%M:%S")}",
+        recipient=EnvSettings().GMAIL_RECIPIENT,
+        attachment_paths=None,
+    )
     result = classify(hs_id, email)
-    status = result["status"]
-    message = result["message"]
+    result_check_hsmt = check_hsmt_file_type(result["message"])
+    status = result_check_hsmt["status"]
+    message = result_check_hsmt["message"]
     if status == "success":
         print(f" [x] Classify success: {message}")
         inserted_step_classify = insertHistorySQL(hs_id=hs_id, step="CLASSIFY")
         if not inserted_step_classify:
-            print("Không insert được trạng thái 'CLASSIFY' vào history với hs_id: %s", hs_id)
-        next_queue = RABBIT_MQ_CHAPTER_SPLITER_QUEUE
+            print(
+                "Không insert được trạng thái 'CLASSIFY' vào history với hs_id: %s", hs_id)
+        next_queue = RABBIT_MQ_MARKDOWN_QUEUE
         rabbit_mq.publish(next_queue, message)
     else:
         print(f" [x] Classify failed: {message}")

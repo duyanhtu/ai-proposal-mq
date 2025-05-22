@@ -131,13 +131,11 @@ class PostExtractionMDNodeV2m0p0:
                 proposal_notice_bid = proposal_notice_bid[0]
             if not isinstance(proposal_notice_bid, dict):  # Nếu vẫn không phải dict, đặt thành {}
                 proposal_notice_bid = {}
-            print(proposal_overview.get("release_date", None))
             formatted_date = (
                 self.check_format_date(proposal_overview.get("release_date", None))
                 if proposal_overview and proposal_overview.get("release_date", None)
                 else "NULL"
             )
-            print(formatted_date)
             closing_time = (
                 self.check_format_date(proposal_notice_bid["bid_closing_time"])
                 if proposal_notice_bid and "bid_closing_time" in proposal_notice_bid
