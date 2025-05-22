@@ -39,6 +39,7 @@ class EnvSettings(BaseSettings, case_sensitive=True):
     RETRY_DELAY: int = 30
     GMAIL_ADDRESS: str = ""
     GMAIL_APP_PASSWORD: str = ""
+    GMAIL_RECIPIENT: str = ""
     GOOGLE_AI_STUDIO_KEY: str = ""
     LOGGING_LEVEL: str = "DEBUG"
 
