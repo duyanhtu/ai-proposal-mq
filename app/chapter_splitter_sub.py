@@ -219,7 +219,9 @@ def consume_callback(ch, method, properties, body):
         keyword_type_map = [
             {"keyword": "tiêu chuẩn đánh giá", "type": "TCDG"},
             {"keyword": ["đánh giá", "yêu cầu về kỹ thuật"],
-                "type": "YCKT"}
+                # "type": "YCKT"}
+                # Tutda edit
+                "type": "HSKT"}
         ]
         for f in files:
             email_content_id = f["email_content_id"]
@@ -317,7 +319,8 @@ def consume_callback(ch, method, properties, body):
                         "document_detail_id": None,
                         "classify_type": classify_type,
                         "markdown_link": markdown_link,
-                        "chapter_name": ""
+                        # Tutda edit
+                        "chapter_name": file_type
                     }
                 )
 

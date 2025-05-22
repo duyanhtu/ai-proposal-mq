@@ -25,121 +25,30 @@ class ExtractionTechnologyNodeV2m0p0:
         self.name = name
 
     def __call__(self, state: StateProposalV1):
-        print(self.name)
+        logger.info(f"Running node: {self.name}")
         try:
-            chapter_content = state["document_content_markdown_hskt"]
-            # Không có chương liên quan để bóc tách
-            if len(chapter_content) < 1:
-                return {
-                    "result_extraction_technology": {},
-                }
-            # Load your Markdown file
-            markdown_splitter = MarkdownTextSplitter(
-                chunk_size=10000,
-                chunk_overlap=200,
-                keep_separator=False
-            )
-            chunks = markdown_splitter.split_text(chapter_content)
+            start_time = time.perf_counter()
 
-            def process_chunk(chunk, chunk_index):
-                print(f"Processing chunk {chunk_index+1}/{len(chunks)}")
-                chat_prompt_template = ChatPromptTemplate.from_template(
-                    self._get_prompt_template())
-                prompt = chat_prompt_template.invoke({"content": chunk})
-                try:
-                    response = llm.chat_model_gpt_4o_mini_16k().with_structured_output(
-                        None, method="json_mode").invoke(prompt)
-                    if isinstance(response, list):
-                        return response
-                    elif isinstance(response, dict) and response:
-                        return [response]
-                    return []
-                except Exception as e:
-                    print(f"Error processing chunk {chunk_index+1}: {str(e)}")
-                    return []
+            input_contents = [
+                *state.get("document_content_markdown_hskt", []),
+                *state.get("document_content_markdown_tcdgkt", [])
+            ]
+            if not input_contents:
+                return {"result_extraction_technology": {}}
 
-            # max_workers = min(8, len(chunks))
-            max_workers = 1
             all_results = []
-            with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                # Create a MarkdownTextSplitter
-                futures = [executor.submit(process_chunk, chunk, i)
-                           for i, chunk in enumerate(chunks)]
-                for future in futures:
-                    chunk_results = future.result()
-                    all_results.extend(chunk_results)
-            merged_results = self._merge_technical_results(all_results)
+            with ThreadPoolExecutor(max_workers=2) as outer_executor:
+                results = list(outer_executor.map(self.process_one_document, input_contents))
+                for r in results:
+                    all_results.extend(r)
 
-            # merged = {
-            #     "requirement_level_0": {
-            #         "muc": "1.",
-            #         "requirement_name": "Yêu cầu về kỹ thuật",
-            #         "sub_requirements": []
-            #     }
-            # }
+            merged = self._merge_technical_results(all_results)
+            final_result = self._format_merged_output(merged)
 
-            # # Extract sub_requirements from the response
-            # for item in merged_results:
-            #     sub_reqs = item["requirement_level_0"].get("sub_requirements", [])
-            #     merged["requirement_level_0"]["sub_requirements"].extend(sub_reqs)
+            elapsed = time.perf_counter() - start_time
+            logger.info(f"{self.name} completed in {elapsed:.2f}s")
 
-            # return {"result_extraction_technology": merged}
-            # Khởi tạo cấu trúc gộp
-            merged = {
-                "hr": [],
-                "requirement_level_0": {
-                    "muc": "1.",
-                    "requirement_name": "Yêu cầu về kỹ thuật",
-                    "sub_requirements": []
-                }
-            }
-
-            # Tập hợp để theo dõi các mục duy nhất nhằm loại bỏ trùng lặp
-            hr_seen = set()
-            sub_req_muc_seen = set()
-
-            # Gộp hr và sub_requirements từ các khối
-            for item in merged_results:
-                # Bỏ qua nếu item không hợp lệ
-                if not isinstance(item, dict):
-                    continue
-
-                # Gộp hr
-                hr_list = item.get("hr", [])
-                for hr_item in hr_list:
-                    # Tạo khóa duy nhất cho mục hr
-                    hr_key = (
-                        hr_item.get("position", ""),
-                        hr_item.get("quantity", "0"),
-                        tuple(
-                            (req.get("name", ""), req.get("description", ""))
-                            for req in hr_item.get("requirements", [])
-                        )
-                    )
-                    if hr_key not in hr_seen:
-                        hr_seen.add(hr_key)
-                        merged["hr"].append(hr_item)
-
-                # Gộp sub_requirements
-                if "requirement_level_0" in item:
-                    # sub_reqs = item["requirement_level_0"].get(
-                    #     "sub_requirements", [])
-                    # for sub_req in sub_reqs:
-                    #     # Kiểm tra trùng lặp dựa trên muc của requirement_level_1
-                    #     sub_muc = sub_req.get(
-                    #         "requirement_level_1", {}).get("muc", "")
-                    #     if sub_muc and sub_muc not in sub_req_muc_seen:
-                    #         sub_req_muc_seen.add(sub_muc)
-                    #         merged["requirement_level_0"]["sub_requirements"].append(
-                    #             sub_req)
-                    sub_reqs = item.get("requirement_level_0", {}).get("sub_requirements", [])
-                    merged["requirement_level_0"]["sub_requirements"].extend(sub_reqs)
-            # Sắp xếp để đảm bảo đầu ra nhất quán
-            # merged["hr"].sort(key=lambda x: x["position"])
-            # merged["requirement_level_0"]["sub_requirements"].sort(
-            #     key=lambda x: x["requirement_level_1"]["muc"]
-            # )
-            return {"result_extraction_technology": merged}
+            return {"result_extraction_technology": final_result}
         except Exception as e:
             error_msg = format_error_message(
                 node_name=self.name,
@@ -151,6 +60,79 @@ class ExtractionTechnologyNodeV2m0p0:
                 "result_extraction_technology": {},
                 "error_messages": [error_msg],
             }
+
+    def process_one_document(self, content: str):
+        """Xử lý từng chương: chia chunk rồi xử lý song song từng chunk."""
+        markdown_splitter = MarkdownTextSplitter(
+            chunk_size=10000,
+            chunk_overlap=200,
+            keep_separator=False
+        )
+        chunks = markdown_splitter.split_text(content)
+
+        def process_chunk(chunk: str, chunk_idx: int):
+            logger.debug(f"[Chunk {chunk_idx+1}/{len(chunks)}] Input: {chunk[:300]!r}")
+            try:
+                prompt_template = self._get_prompt_template()
+                prompt = ChatPromptTemplate.from_template(prompt_template).invoke({"content": chunk})
+                response = (
+                    llm.chat_model_gpt_4o_mini_16k()
+                    .with_structured_output(None, method="json_mode")
+                    .invoke(prompt)
+                )
+                logger.debug(f"[Chunk {chunk_idx+1}] Output: {response}")
+                if isinstance(response, list):
+                    return response
+                elif isinstance(response, dict) and response:
+                    return [response]
+                return []
+            except Exception as e:
+                logger.error(f"Error in chunk {chunk_idx+1}: {e}")
+                return []
+
+        chunk_results = []
+        with ThreadPoolExecutor(max_workers=4) as inner_executor:
+            futures = [inner_executor.submit(process_chunk, chunk, i) for i, chunk in enumerate(chunks)]
+            for future in futures:
+                chunk_results.extend(future.result())
+        return chunk_results
+
+    def _format_merged_output(self, merged_results):
+        merged = {
+            "hr": [],
+            "requirement_level_0": {
+                "muc": "1.",
+                "requirement_name": "Yêu cầu về kỹ thuật",
+                "sub_requirements": []
+            }
+        }
+
+        hr_seen = set()
+
+        for item in merged_results:
+            if not isinstance(item, dict):
+                continue
+
+            # Gộp thông tin nhân sự
+            hr_list = item.get("hr", [])
+            for hr_item in hr_list:
+                hr_key = (
+                    hr_item.get("position", ""),
+                    hr_item.get("quantity", "0"),
+                    tuple(
+                        (req.get("name", ""), req.get("description", ""))
+                        for req in hr_item.get("requirements", [])
+                    )
+                )
+                if hr_key not in hr_seen:
+                    hr_seen.add(hr_key)
+                    merged["hr"].append(hr_item)
+
+            # Gộp các yêu cầu kỹ thuật
+            sub_reqs = item.get("requirement_level_0", {}).get("sub_requirements", [])
+            merged["requirement_level_0"]["sub_requirements"].extend(sub_reqs)
+
+        return merged
 
     def _get_prompt_template(self):
         """Return the prompt template for extraction"""
