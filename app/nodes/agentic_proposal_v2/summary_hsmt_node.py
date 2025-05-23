@@ -1,15 +1,16 @@
 # Standard imports
 import time
+
 # Third party imports
 from langchain_core.prompts import ChatPromptTemplate
 
 # Your imports
 from app.model_ai import llm
-from app.nodes.agentic_proposal.extraction_handle_error import format_error_message
 from app.nodes.states.state_proposal_v1 import StateProposalV1
 from app.utils.logger import get_logger
 
 logger = get_logger("except_handling_extraction")
+
 
 class SummaryHSMTNodeV2m0p0:
     """
@@ -26,16 +27,16 @@ class SummaryHSMTNodeV2m0p0:
     def __call__(self, state: StateProposalV1):
         """
             Thực hiện tóm tắt nội dung với model.
-            
+
             Args:
                 state (StateProposalV1):
                     state["document_content_markdown_hsmt"] (List[str]): Danh sách nội dung các file HSMT
-            
+
             Returns:
                 state (StateProposalV1):
                     state["summary_hsmt"] (str): Nội dung tóm tắt từ model
                     state["result_extraction_overview"]  (ExtractOverviewBiddingDocuments): Thông tin chung
-            
+
             Exceptions:
                 Nếu có lỗi, các trường sẽ trả về list rỗng và có thêm trường "error_messages".
         """
@@ -56,6 +57,10 @@ class SummaryHSMTNodeV2m0p0:
             Nhiệm vụ của bạn là đọc và trích xuất các nội dung quan trọng từ hồ sơ mời thầu để lấy thông tin sau:
             - Phần `result_extraction_overview` chứa các thông tin chính được trả về dưới dạng JSON.
             - Phần `summary_hsmt` là một chuỗi chứa nội dung tóm tắt được định dạng theo cú pháp Markdown, bao gồm các tiêu chí được liệt kê dưới đây.
+            
+            Tóm tắt hồ sơ mời thầu theo các tiêu chí được liệt kê trong phần "summary". 
+            KHÔNG sao chép dòng hướng dẫn này vào kết quả.
+            
             Hãy xác định và trình bày lại các thông tin chính theo cấu trúc JSON sau:
             {{
                 "result_extraction_overview": {{
@@ -67,7 +72,6 @@ class SummaryHSMTNodeV2m0p0:
                     "decision_number": "<Số quyết định phê duyệt>"
                 }},
                 "summary_hsmt":"
-                    (Tóm tắt hồ sơ mời thầu theo các tiêu chí sau)
                     ### 1.Thông tin chung về gói thầu:
                         - **Tên gói thầu:**
                         - **Chủ đầu tư:**
@@ -101,9 +105,11 @@ class SummaryHSMTNodeV2m0p0:
                 {content}
         """
 
-        chat_prompt_template = ChatPromptTemplate.from_template(prompt_template)
+        chat_prompt_template = ChatPromptTemplate.from_template(
+            prompt_template)
 
-        prompt = chat_prompt_template.invoke({"content": "\n\n".join(chapter_content)})
+        prompt = chat_prompt_template.invoke(
+            {"content": "\n\n".join(chapter_content)})
 
         response = (
             llm.chat_model_gpt_4o_mini_16k().with_structured_output("None", method="json_mode")
