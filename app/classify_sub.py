@@ -113,7 +113,7 @@ def consume_callback(ch, method, properties, body):
                     Hệ thống đã gặp lỗi trong quá trình bóc tách dữ liệu. Vui lòng kiểm tra lại nội dung tài liệu đã tải lên và thử lại.
                     Trân trọng,
                 """,
-            recipient=email,
+            to_emails=email,
         )
 
         logger.info(
