@@ -67,12 +67,13 @@ def consume_callback(ch, method, properties, body):
     hs_id = message["id"]
     email = message["email"]
     # Tutda edit
+    to_emails=EnvSettings().GMAIL_RECIPIENT
     send_email_with_attachments(
         email_address=EnvSettings().GMAIL_ADDRESS,
         app_password=EnvSettings().GMAIL_APP_PASSWORD,
         subject="Hồ sơ mới đã được gửi đến hệ thống",
         body=f"Hệ thống ghi nhận có hồ sơ {hs_id} gửi đến từ {email} vào lúc {datetime.now().strftime("%d-%m-%Y %H:%M:%S")}",
-        recipient=EnvSettings().GMAIL_RECIPIENT,
+        to_emails=to_emails.split(","),
         attachment_paths=None,
     )
     result = classify(hs_id, email)
