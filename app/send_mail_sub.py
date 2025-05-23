@@ -55,7 +55,7 @@ def consume_callback(ch, method, properties, body):
             app_password=EnvSettings().GMAIL_APP_PASSWORD,
             subject=subject,
             body=body,
-            recipient=recipient,
+            to_emails=recipient,
             attachment_paths=attachment_paths,
         )
         if response["success"]:
