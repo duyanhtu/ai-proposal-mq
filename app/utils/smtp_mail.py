@@ -492,17 +492,22 @@ class GmailSMTPClient:
         return filtered_emails
 
 
-def send_simple_email(email_address: str, app_password: str, recipient: str,
-                      subject: str, body: str) -> Dict[str, Any]:
+def send_simple_email(email_address: str, app_password: str,
+                      to_emails: Union[str, List[str]],
+                      subject: str, body: str,
+                      cc_emails: Union[str, List[str]] = None,
+                      bcc_emails: Union[str, List[str]] = None) -> Dict[str, Any]:
     """
     Send a simple email without attachments
 
     Args:
         email_address: Your Gmail address
         app_password: Your Gmail app password (not your regular password)
-        recipient: Recipient email address
+        to_emails: Recipient email address(es) - single string or list of strings
         subject: Email subject
         body: Email body text
+        cc_emails: CC recipient email address(es) - single string or list of strings
+        bcc_emails: BCC recipient email address(es) - single string or list of strings
 
     Returns:
         Dictionary with status information
@@ -512,27 +517,34 @@ def send_simple_email(email_address: str, app_password: str, recipient: str,
 
     # Send the email
     result = gmail_client.send_email(
-        to_emails=recipient,
+        to_emails=to_emails,
         subject=subject,
-        body=body
+        body=body,
+        cc_emails=cc_emails,
+        bcc_emails=bcc_emails
     )
 
     return result
 
 
 def send_email_with_attachments(email_address: str, app_password: str,
-                                recipient: str, subject: str, body: str,
-                                attachment_paths: List[str] = None) -> Dict[str, Any]:
+                                to_emails: Union[str, List[str]],
+                                subject: str, body: str,
+                                attachment_paths: List[str] = None,
+                                cc_emails: Union[str, List[str]] = None,
+                                bcc_emails: Union[str, List[str]] = None) -> Dict[str, Any]:
     """
     Send an email with file attachments
 
     Args:
         email_address: Your Gmail address
         app_password: Your Gmail app password (not your regular password)
-        recipient: Recipient email address
+        to_emails: Recipient email address(es) - single string or list of strings
         subject: Email subject
         body: Email body text
         attachment_paths: List of file paths to attach
+        cc_emails: CC recipient email address(es) - single string or list of strings
+        bcc_emails: BCC recipient email address(es) - single string or list of strings
 
     Returns:
         Dictionary with status information
@@ -542,10 +554,12 @@ def send_email_with_attachments(email_address: str, app_password: str,
 
     # Send the email with attachments
     result = gmail_client.send_email(
-        to_emails=recipient,
+        to_emails=to_emails,
         subject=subject,
         body=body,
-        attachment_paths=attachment_paths
+        attachment_paths=attachment_paths,
+        cc_emails=cc_emails,
+        bcc_emails=bcc_emails
     )
 
     return result
