@@ -136,5 +136,6 @@ class StateProposalV1(TypedDict):
     is_data_extracted_finance: bool
     is_exist_content_markdown_tbmt: bool
     is_exist_content_markdown_hskt: bool
+    is_exist_content_markdown_hsmt: bool
     error_messages: Annotated[List[str], operator.add]
 
