@@ -334,7 +334,7 @@ def consume_callback(ch, method, properties, body):
                 RETURNING id;
             """
             params = (email_content_id,
-                      file["file_name"], file["file_path"], file["file_path"] if classify_type != 'TEXT' else markdown_link, file["chapter_name"])
+                      file["file_name"], file["file_path"], file["markdown_link"], file["chapter_name"])
             inserted_id = postgre.executeSQL(sql, params)
             if inserted_id:
                 # Gán ID vào files_object
