@@ -44,7 +44,7 @@ class GenerateExcelAndDocxNodeV1:
         # Biến đổi tên file cho phù hợp
         proposal_name = self.convert_to_ascii_underscore(
             f"{reuslt_investor_name}_{result_proposal_name}")
-        response_excel, response_docx, response_md_content = None, None, None
+        response_excel, response_docx = None, None
         # Tạo file Excel nếu có HSMT
         timestamp = datetime.now().strftime("%Y_%m_%d_%S_%M_%H")
         if state["is_exist_content_markdown_hsmt"]:

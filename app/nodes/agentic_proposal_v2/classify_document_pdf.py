@@ -57,10 +57,12 @@ class ClassifyDocumentPdfNodeV2m0p0:
             # 1. Kiểm tra nội dung markdown có rỗng hay không
             is_exist_content_markdown_tbmt = bool(state["document_content_markdown_tbmt"])
             is_exist_content_markdown_hskt = bool(state["document_content_markdown_hskt"])
+            is_exist_content_markdown_hsmt = bool(state["document_content_markdown_hsmt"])
             logger.info(
-                "Markdown content exists - TBMT: %s, HSKT: %s",
+                "Markdown content exists - TBMT: %s, HSKT: %s, HSMT: %s",
                 is_exist_content_markdown_tbmt,
-                is_exist_content_markdown_hskt
+                is_exist_content_markdown_hskt,
+                is_exist_content_markdown_hsmt
             )
             # 2. Cập nhật trạng thái DB -> 'DANG_XU_LY'
             executeSQL(
@@ -68,6 +70,7 @@ class ClassifyDocumentPdfNodeV2m0p0:
             return {
                 "is_exist_content_markdown_tbmt": is_exist_content_markdown_tbmt,
                 "is_exist_content_markdown_hskt": is_exist_content_markdown_hskt,
+                "is_exist_content_markdown_hsmt": is_exist_content_markdown_hsmt,
                 "agentai_name": "proposal_team_v1.0.0",
                 "agentai_code": "AGENTAI CODE"
             }
@@ -81,5 +84,6 @@ class ClassifyDocumentPdfNodeV2m0p0:
             return {
                 "is_exist_content_markdown_tbmt": False,
                 "is_exist_content_markdown_hskt": False,
+                "is_exist_content_markdown_hsmt": False,
                 "error_messages": [error_msg],
             }
