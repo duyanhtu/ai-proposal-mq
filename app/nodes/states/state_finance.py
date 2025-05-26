@@ -21,6 +21,7 @@ class StateSqlFinance(MessagesState):
     data: List
     sql_next: str
     email_content_id: int
+    hs_id: str
     temp_file_path: List[str]
     proposal_name: str
     is_data_extracted_finance: bool

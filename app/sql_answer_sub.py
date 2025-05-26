@@ -100,6 +100,7 @@ def consume_callback(ch, method, properties, body):
                         {finance_list_str}
                 """,
             },
+            "hs_id": hs_id,
             "email_content_id": email_content_id,
             "is_data_extracted_finance": is_data_extracted_finance,
             "is_exist_content_markdown_hskt": is_exist_content_markdown_hskt,
@@ -125,9 +126,6 @@ def consume_callback(ch, method, properties, body):
         sql = "SELECT * from email_contents where id = %s"
         params = (res["email_content_id"],)
         email_sql = postgre.selectSQL(sql, params)
-        inserted_step_generate_template = postgre.insertHistorySQL(hs_id=hs_id, step="GENARATE_TEMPLATE")
-        if not inserted_step_generate_template:
-            print(f"Không insert được trạng thái 'GENARATE_TEMPLATE' vào history với hs_id: {hs_id}")
         if not email_sql:
             return
         next_queue = RABBIT_MQ_SEND_MAIL_QUEUE

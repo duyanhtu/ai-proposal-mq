@@ -4,6 +4,7 @@ import unicodedata
 from datetime import datetime
 
 from app.nodes.states.state_finance import StateSqlFinance
+from app.storage import postgre
 from app.storage.postgre import selectSQL
 from app.utils.export_doc import convert_md_to_docx, export_docs_from_file
 from app.utils.exporter_v2 import process_excel_file_no_upload_with_compliance
@@ -35,6 +36,7 @@ class GenerateExcelAndDocxNodeV1:
     def __call__(self, state: StateSqlFinance):
         print(self.name)
         # Query from database for any pending tasks
+        inserted_step_generate_template = postgre.insertHistorySQL(hs_id=state["hs_id"], step="GENARATE_TEMPLATE")
         sql = f"SELECT * FROM proposal WHERE status='EXTRACTED' and email_content_id = {state["email_content_id"]}"
         results = selectSQL(sql)
         if not results:
@@ -75,6 +77,7 @@ class GenerateExcelAndDocxNodeV1:
         # ]
         print("[GENERATE_EXCEL_AND_DOCX_NODE_V1] RESULT: ",
               temp_file_path_filtered)
+        postgre.updateHistoryEndDateSQL(inserted_step_generate_template)
         return {
             "temp_file_path": temp_file_path_filtered,
             "proposal_name": proposal_name,
