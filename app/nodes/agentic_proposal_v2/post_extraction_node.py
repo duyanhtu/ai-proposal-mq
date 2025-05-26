@@ -190,6 +190,7 @@ class PostExtractionMDNodeV2m0p0:
                 hr_items = result_extraction_technology.get("hr", [])
                 if isinstance(hr_items, list) and len(hr_items) > 0:
                     result_extraction_hr = self.merge_hr_requirements(result_extraction_hr, hr_items)
+            result_extraction_hr = list(filter(lambda item: int(item.get("quantity", "0")) > 0, result_extraction_hr["hr"]))
             pgdb_proposal.insert_many_hr_requirement(
                 proposal_id, result_extraction_hr
             )
