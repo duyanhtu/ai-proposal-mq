@@ -24,6 +24,6 @@ class StateSqlFinance(MessagesState):
     temp_file_path: List[str]
     proposal_name: str
     is_data_extracted_finance: bool
-    is_exist_contnet_markdown_tbmt: bool
-    is_exist_contnet_markdown_hskt: bool
+    is_exist_content_markdown_tbmt: bool
+    is_exist_content_markdown_hskt: bool
     is_exist_content_markdown_hsmt: bool
