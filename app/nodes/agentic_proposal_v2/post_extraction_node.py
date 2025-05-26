@@ -119,7 +119,6 @@ class PostExtractionMDNodeV2m0p0:
             is_data_extracted_finance = False
             proposal_overview = state.get("result_extraction_overview")
             proposal_notice_bid = state.get("result_extraction_notice_bid", {})
-            proposal_summary_hsmt = state.get("summary_hsmt", "")
             result_extraction_finance = state.get("result_extraction_finance", [])
             # date_object = datetime.strptime(proposal_overview.release_date, "%d/%m/%Y")
             # formatted_date = date_object.strftime("%Y-%m-%d")
@@ -159,8 +158,7 @@ class PostExtractionMDNodeV2m0p0:
                 execution_duration=proposal_notice_bid.get("package_execution_time",""),
                 closing_time=closing_time,
                 validity_period=proposal_notice_bid.get("bid_validity",""),
-                security_amount=proposal_notice_bid.get("bid_security_amount",""),
-                summary=proposal_summary_hsmt,
+                security_amount=proposal_notice_bid.get("bid_security_amount","")
 
             )
 

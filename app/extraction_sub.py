@@ -107,9 +107,8 @@ def consume_callback(ch, method, properties, body):
                 "proposal_id": res["proposal_id"],
                 "email_content_id": res["email_content_id"],
                 "is_data_extracted_finance": res["is_data_extracted_finance"],
-                "is_exist_contnet_markdown_hskt": res["is_exist_contnet_markdown_hskt"],
-                "is_exist_contnet_markdown_tbmt": res["is_exist_contnet_markdown_tbmt"],
-                "is_exist_contnet_markdown_hsmt": res["is_exist_contnet_markdown_hsmt"],
+                "is_exist_content_markdown_hskt": res["is_exist_content_markdown_hskt"],
+                "is_exist_content_markdown_tbmt": res["is_exist_content_markdown_tbmt"],
             }
             rabbit_mq.publish(queue=next_queue, message=next_message)
         except KeyError as ke:
@@ -163,9 +162,8 @@ def consume_callback_v2(ch, method, properties, body):
                 "proposal_id": res["proposal_id"],
                 "email_content_id": res["email_content_id"],
                 "is_data_extracted_finance": res["is_data_extracted_finance"],
-                "is_exist_contnet_markdown_hskt": res["is_exist_contnet_markdown_hskt"],
-                "is_exist_contnet_markdown_tbmt": res["is_exist_contnet_markdown_tbmt"],
-                "is_exist_contnet_markdown_hsmt": res["is_exist_contnet_markdown_hsmt"],
+                "is_exist_content_markdown_hskt": res["is_exist_content_markdown_hskt"],
+                "is_exist_content_markdown_tbmt": res["is_exist_content_markdown_tbmt"],
             }
             rabbit_mq.publish(queue=next_queue, message=next_message)
         except KeyError as ke:

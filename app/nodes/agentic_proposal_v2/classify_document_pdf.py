@@ -31,7 +31,6 @@ class ClassifyDocumentPdfNodeV2m0p0:
                 1. Kiểm tra nội dung markdown có rỗng hay không bao gồm:
                     state["document_content_markdown_tbmt"]
                     state["document_content_markdown_hskt"]
-                    state["document_content_markdown_hsmt"]
                 2. Cập nhật trạng thái status='DANG_XU_LY' trong bảng email_contents theo hs_id và type khác 'unknown'
 
             Args:
@@ -39,12 +38,10 @@ class ClassifyDocumentPdfNodeV2m0p0:
                     state["hs_id"] (str): Mã định danh của hồ sơ.
                     state["document_content_markdown_tbmt"] (List[str]): Danh sách nội dung file TBMT
                     state["document_content_markdown_hskt"] (List[str]): Danh sách nội dung file HSKT
-                    state["document_content_markdown_hsmt"] (List[str]): Danh sách nội dung file HSMT
 
             Returns:
                 state (StateProposalV1):
                         - state["email_content_id"] (str): ID của bản ghi tài liệu email (nếu có).
-                        - state["document_content_markdown_hsmt"] (List[str]): Danh sách nội dung file HSMT
                         - state["document_content_markdown_tbmt"] (List[str]): Danh sách nội dung file TBMT
                         - state["document_content_markdown_hskt"] (List[str]): Danh sách nội dung file HSKT
                         - state["agentai_name"] (str): proposal_team_v1.0.0
@@ -60,20 +57,17 @@ class ClassifyDocumentPdfNodeV2m0p0:
             # 1. Kiểm tra nội dung markdown có rỗng hay không
             is_exist_content_markdown_tbmt = bool(state["document_content_markdown_tbmt"])
             is_exist_content_markdown_hskt = bool(state["document_content_markdown_hskt"])
-            is_exist_content_markdown_hsmt = bool(state["document_content_markdown_hsmt"])
             logger.info(
-                "Markdown content exists - TBMT: %s, HSKT: %s, HSMT: %s",
+                "Markdown content exists - TBMT: %s, HSKT: %s",
                 is_exist_content_markdown_tbmt,
-                is_exist_content_markdown_hskt,
-                is_exist_content_markdown_hsmt
+                is_exist_content_markdown_hskt
             )
             # 2. Cập nhật trạng thái DB -> 'DANG_XU_LY'
             executeSQL(
                 f"UPDATE email_contents SET status='DANG_XU_LY' WHERE hs_id = '{hs_id}' AND type <> 'unknown'")
             return {
-                "is_exist_contnet_markdown_tbmt": is_exist_content_markdown_tbmt,
-                "is_exist_contnet_markdown_hskt": is_exist_content_markdown_hskt,
-                "is_exist_contnet_markdown_hsmt": is_exist_content_markdown_hsmt,
+                "is_exist_content_markdown_tbmt": is_exist_content_markdown_tbmt,
+                "is_exist_content_markdown_hskt": is_exist_content_markdown_hskt,
                 "agentai_name": "proposal_team_v1.0.0",
                 "agentai_code": "AGENTAI CODE"
             }
@@ -85,8 +79,7 @@ class ClassifyDocumentPdfNodeV2m0p0:
                 include_trace=True
             )
             return {
-                "is_exist_contnet_markdown_tbmt": False,
-                "is_exist_contnet_markdown_hskt": False,
-                "is_exist_contnet_markdown_hsmt": False,
+                "is_exist_content_markdown_tbmt": False,
+                "is_exist_content_markdown_hskt": False,
                 "error_messages": [error_msg],
             }

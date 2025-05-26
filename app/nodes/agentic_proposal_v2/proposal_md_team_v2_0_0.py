@@ -15,7 +15,7 @@ from app.nodes.agentic_proposal_v2.extraction_technology_node import ExtractionT
 from app.nodes.agentic_proposal_v2.post_extraction_node import PostExtractionMDNodeV2m0p0
 from app.nodes.agentic_proposal_v2.prepare_data_document import PrepareDataDocumentNodeV2m0p0
 from app.nodes.agentic_proposal_v2.extraction_notice_bid_node import ExtractionNoticeBidMDNodeV2m0p0
-from app.nodes.agentic_proposal_v2.summary_hsmt_node import SummaryHSMTNodeV2m0p0
+from app.nodes.agentic_proposal_v2.summary_hsmt_node import SummaryHSMTNodeV2m0p1
 def proposal_md_team_graph_v2_0_0():
     """proposal_md_team_graph_v2_0_0"""
     start_time = time.perf_counter()
@@ -32,8 +32,8 @@ def proposal_md_team_graph_v2_0_0():
         name="ClassifyDocumentPdfNodeV2m0p0",
     )
     # 3. Summary HSMT 
-    summary_hsmt_node_v2 = SummaryHSMTNodeV2m0p0(
-        name="SummaryHSMTNodeV2m0p0",
+    summary_hsmt_node_v2 = SummaryHSMTNodeV2m0p1(
+        name="SummaryHSMTNodeV2m0p1",
     )
     # 4. Extraction HR MD
     extraction_hr_md_node_v2 = ExtractionHRMDNodeV2m0p0(
