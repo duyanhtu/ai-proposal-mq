@@ -107,11 +107,14 @@ def consume_callback(ch, method, properties, body):
             "is_exist_contnet_markdown_hsmt": is_exist_contnet_markdown_hsmt,
         }
         try:
+            # Insert History SQL
+            inserted_step_sql_answer = postgre.insertHistorySQL(hs_id=hs_id, step="SQL_ANSWER")
             res = sql_team_graph_v1_0_1_instance.invoke(
                 inputs
             )
+            # Update Hisotry End Date SQL
+            postgre.updateHistoryEndDateSQL(inserted_step_sql_answer)
             if is_data_extracted_finance:
-                inserted_step_sql_answer = postgre.insertHistorySQL(hs_id=hs_id, step="SQL_ANSWER")
                 if not inserted_step_sql_answer:
                     print(f"Không insert được trạng thái 'SQL_ANSWER' vào history với hs_id: {hs_id}")
             logger.info("[v] Done run graph and inserted finance requirement.")
