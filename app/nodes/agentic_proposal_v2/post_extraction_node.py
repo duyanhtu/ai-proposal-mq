@@ -119,7 +119,6 @@ class PostExtractionMDNodeV2m0p0:
             is_data_extracted_finance = False
             proposal_overview = state.get("result_extraction_overview")
             proposal_notice_bid = state.get("result_extraction_notice_bid", {})
-            proposal_summary_hsmt = state.get("summary_hsmt", "")
             result_extraction_finance = state.get("result_extraction_finance", [])
             # date_object = datetime.strptime(proposal_overview.release_date, "%d/%m/%Y")
             # formatted_date = date_object.strftime("%Y-%m-%d")
@@ -131,13 +130,11 @@ class PostExtractionMDNodeV2m0p0:
                 proposal_notice_bid = proposal_notice_bid[0]
             if not isinstance(proposal_notice_bid, dict):  # Nếu vẫn không phải dict, đặt thành {}
                 proposal_notice_bid = {}
-            print(proposal_overview.get("release_date", None))
             formatted_date = (
                 self.check_format_date(proposal_overview.get("release_date", None))
                 if proposal_overview and proposal_overview.get("release_date", None)
                 else "NULL"
             )
-            print(formatted_date)
             closing_time = (
                 self.check_format_date(proposal_notice_bid["bid_closing_time"])
                 if proposal_notice_bid and "bid_closing_time" in proposal_notice_bid
@@ -161,8 +158,7 @@ class PostExtractionMDNodeV2m0p0:
                 execution_duration=proposal_notice_bid.get("package_execution_time",""),
                 closing_time=closing_time,
                 validity_period=proposal_notice_bid.get("bid_validity",""),
-                security_amount=proposal_notice_bid.get("bid_security_amount",""),
-                summary=proposal_summary_hsmt,
+                security_amount=proposal_notice_bid.get("bid_security_amount","")
 
             )
 
@@ -192,10 +188,13 @@ class PostExtractionMDNodeV2m0p0:
                 hr_items = result_extraction_technology.get("hr", [])
                 if isinstance(hr_items, list) and len(hr_items) > 0:
                     result_extraction_hr = self.merge_hr_requirements(result_extraction_hr, hr_items)
-            pgdb_proposal.insert_many_hr_requirement(
-                proposal_id, result_extraction_hr
-            )
-            print("inserted hr requirement")
+            
+            result_extraction_hr = list(filter(lambda item: int(item.get("quantity", "0")) > 0, result_extraction_hr))
+            if len(result_extraction_hr) > 0:
+                pgdb_proposal.insert_many_hr_requirement(
+                    proposal_id, result_extraction_hr
+                )
+                print("inserted hr requirement")
             # 4. insert into experience requirement table
             # list of experience_requirement to be inserted
             experience_requirements = [

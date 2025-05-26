@@ -93,6 +93,8 @@ class StateProposalV1(TypedDict):
         document_content_markdown_tbmt: str - Nội dung tài liệu markdown Thông báo mời thầu
         document_content_markdown_hskt: str - Nội dung tài liệu markdown Hồ sơ kỹ thuật
         document_content_markdown_hsmt: str - Nội dung tài liệu markdown Hồ sơ mời thầu
+        document_content_markdown_tcdgkt: str - Nội dung tài liệu markdown tiêu chuẩn đánh giá kỹ thuật ngoài
+        document_content_markdown_tcdg: str - Nội dung tài liệu markdown tiêu chuẩn đánh giá trong hồ sơ mời thầu
         email_content_id: int - ID của email content
         result_extraction_hr: Any - Kết quả trích xuất yêu cầu tài chính
         result_extraction_finance: List[ExtractFinanceRequirement] - Kết quả trích xuất yêu cầu tài chính
@@ -116,9 +118,11 @@ class StateProposalV1(TypedDict):
     document_type: str
     document_content: List[str]
     document_file_md: List[dict]
-    document_content_markdown_tbmt: str
-    document_content_markdown_hskt: str
-    document_content_markdown_hsmt: str
+    document_content_markdown_tbmt: List[str] # File full TBMT
+    document_content_markdown_hskt: List[str] # File full HSKT
+    document_content_markdown_hsmt: List[str] # File full HSMT
+    document_content_markdown_tcdgkt: List[str] # Chương III ngoài
+    document_content_markdown_tcdg: List[str] # Chương III trong
     email_content_id: int
     result_extraction_hr: Any
     result_extraction_finance: List[ExtractFinanceRequirement]
@@ -130,8 +134,8 @@ class StateProposalV1(TypedDict):
     hs_id: str
     summary_hsmt: str
     is_data_extracted_finance: bool
-    is_exist_contnet_markdown_tbmt: bool
-    is_exist_contnet_markdown_hskt: bool
-    is_exist_contnet_markdown_hsmt: bool
+    is_exist_content_markdown_tbmt: bool
+    is_exist_content_markdown_hskt: bool
+    is_exist_content_markdown_hsmt: bool
     error_messages: Annotated[List[str], operator.add]
 

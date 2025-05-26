@@ -15,7 +15,7 @@ from app.nodes.agentic_proposal_v2.extraction_technology_node import ExtractionT
 from app.nodes.agentic_proposal_v2.post_extraction_node import PostExtractionMDNodeV2m0p0
 from app.nodes.agentic_proposal_v2.prepare_data_document import PrepareDataDocumentNodeV2m0p0
 from app.nodes.agentic_proposal_v2.extraction_notice_bid_node import ExtractionNoticeBidMDNodeV2m0p0
-from app.nodes.agentic_proposal_v2.summary_hsmt_node import SummaryHSMTNodeV2m0p0
+from app.nodes.agentic_proposal_v2.summary_hsmt_node import SummaryHSMTNodeV2m0p1
 def proposal_md_team_graph_v2_0_0():
     """proposal_md_team_graph_v2_0_0"""
     start_time = time.perf_counter()
@@ -23,38 +23,39 @@ def proposal_md_team_graph_v2_0_0():
     #
     # Define Node
     #
+    # 1. Prepreade Data Document
     prepare_data_document_node_v2 = PrepareDataDocumentNodeV2m0p0(
         name="PrepareDataDocumentNodeV2m0p0",
     )
-    # 1. Classify Document PDF
+    # 2. Classify Document PDF
     classify_document_pdf_node_v2 = ClassifyDocumentPdfNodeV2m0p0(
         name="ClassifyDocumentPdfNodeV2m0p0",
     )
-    # 9. Extraction HR MD
+    # 3. Summary HSMT 
+    summary_hsmt_node_v2 = SummaryHSMTNodeV2m0p1(
+        name="SummaryHSMTNodeV2m0p1",
+    )
+    # 4. Extraction HR MD
     extraction_hr_md_node_v2 = ExtractionHRMDNodeV2m0p0(
         name="ExtractionHRMDNodeV2m0p0",
     )
-    # 10. Extraction Finance MD
+    # 5. Extraction Finance MD
     extraction_finance_md_node_v2 = ExtractionFinanceMDNodeV2m0p0(
         name="ExtractionFinanceMDNodeV2m0p0",
     )
-    # 11. Extraction Experience MD
+    # 6. Extraction Experience MD
     extraction_experience_md_node_v2 = ExtractionExperienceMDNodeV2m0p0(
         name="ExtractionExperienceMDNodeV2m0p0",
     )
-    # ?. Extraction Technology MD
+    # 7. Extraction Technology MD
     extraction_technology_md_node_v2 = ExtractionTechnologyNodeV2m0p0(
         name="ExtractionTechnologyNodeV2m0p0", 
     )
-    # ?. Extraction Notice Bid MD
+    # 8. Extraction Notice Bid MD
     extraction_notice_bid_md_node_v2 = ExtractionNoticeBidMDNodeV2m0p0(
         name="ExtractionNoticeBidMDNodeV2m0p0",
     )
-    # ?. Summary HSMT 
-    summary_hsmt_node_v2 = SummaryHSMTNodeV2m0p0(
-        name="SummaryHSMTNodeV2m0p0",
-    )
-    # 12. Post-Extraction MD
+    # 9. Post-Extraction MD
     post_extraction_md_node_v2 = PostExtractionMDNodeV2m0p0(
         name="PostExtractionMDNodeV2m0p0",
     )
@@ -68,73 +69,72 @@ def proposal_md_team_graph_v2_0_0():
     #
     # Add node
     #
-    # ?. Prepare Data MD
+    # 1. Prepare Data MD
     builder.add_node(prepare_data_document_node_v2.name, prepare_data_document_node_v2)
-    #
+    # 2. Classify Document PDF
     builder.add_node(classify_document_pdf_node_v2.name, classify_document_pdf_node_v2)
-   # 9. Extraction HR MD
-    builder.add_node(extraction_hr_md_node_v2.name, extraction_hr_md_node_v2)
-    # 10. Extraction Finance MD
-    builder.add_node(extraction_finance_md_node_v2.name, extraction_finance_md_node_v2)
-    # 11. Extraction Experience MD
-    builder.add_node(extraction_experience_md_node_v2.name, extraction_experience_md_node_v2)
-    # ?. Extraction Technology MD
-    builder.add_node(extraction_technology_md_node_v2.name, extraction_technology_md_node_v2)
-    # ?. Extraction Notice Bid MD
-    builder.add_node(extraction_notice_bid_md_node_v2.name, extraction_notice_bid_md_node_v2)
-    # ?. Summary HSMT
+    # 3. Summary HSMT
     builder.add_node(summary_hsmt_node_v2.name, summary_hsmt_node_v2)
-    # 12. Post-Extraction MD
+    # 4. Extraction HR MD
+    builder.add_node(extraction_hr_md_node_v2.name, extraction_hr_md_node_v2)
+    # 5. Extraction Finance MD
+    builder.add_node(extraction_finance_md_node_v2.name, extraction_finance_md_node_v2)
+    # 6. Extraction Experience MD
+    builder.add_node(extraction_experience_md_node_v2.name, extraction_experience_md_node_v2)
+    # 7. Extraction Technology MD
+    builder.add_node(extraction_technology_md_node_v2.name, extraction_technology_md_node_v2)
+    # 8. Extraction Notice Bid MD
+    builder.add_node(extraction_notice_bid_md_node_v2.name, extraction_notice_bid_md_node_v2)
+    # 9. Post-Extraction MD
     builder.add_node(post_extraction_md_node_v2.name, post_extraction_md_node_v2)
-    # # 13. Generate Excel And Docx
-    # builder.add_node(generate_excel_and_docx_node_v1.name, generate_excel_and_docx_node_v1)
     # ------------
     # End Add Node
     #
     #
     # Create edge
     #
-    # ?. from START to Prepare Data Document
+    # START->1
+    # from START to Prepare Data Document
     builder.add_edge(START, prepare_data_document_node_v2.name)
-    # ?. from Prepare Data Document to Classify Document PDF
+    # 1->2
+    # from Prepare Data Document to Classify Document PDF
     builder.add_edge(prepare_data_document_node_v2.name, classify_document_pdf_node_v2.name)
-    # ?. from Classify Document PDF to Extraction Overview MD
+    # 2->3 
+    # from Classify Document PDF to Extraction Overview MD
     builder.add_edge(classify_document_pdf_node_v2.name, summary_hsmt_node_v2.name)
+    # 3->4
     # from Extraction Overview MD to Extraction HR MD
     builder.add_edge(summary_hsmt_node_v2.name, extraction_hr_md_node_v2.name)
-    # 8->10
+    # 3->5
     # from Extraction Overview MD to Extraction Finance MD
     builder.add_edge(summary_hsmt_node_v2.name, extraction_finance_md_node_v2.name)
-    # 8->11
+    # 3->6
     # from Extraction Overview MD to Extraction Experience MD
     builder.add_edge(summary_hsmt_node_v2.name, extraction_experience_md_node_v2.name)
-    #
+    # 3->7
     # from Extraction Overview MD to Extraction Technology MD
     builder.add_edge(summary_hsmt_node_v2.name, extraction_technology_md_node_v2.name)
-    #
+    # 3->8
     # from Extraction Overview MD to Extraction Notice Bid MD
     builder.add_edge(summary_hsmt_node_v2.name, extraction_notice_bid_md_node_v2.name)
-    # 9->12
+    # 4->9
     # from Extraction HR MD to Post-Extraction MD
     builder.add_edge(extraction_hr_md_node_v2.name, post_extraction_md_node_v2.name)
-    # 10->12
+    # 5->9
     # from Extraction Finance MD to Post-Extraction MD
     builder.add_edge(extraction_finance_md_node_v2.name, post_extraction_md_node_v2.name)
-    # 11->12
+    # 6->9
     # from Extraction Experience MD to Post-Extraction MD
     builder.add_edge(extraction_experience_md_node_v2.name, post_extraction_md_node_v2.name)
-    #
+    # 7->9
     # from Extraction Overview MD to Extraction Technology MD
     builder.add_edge(extraction_technology_md_node_v2.name, post_extraction_md_node_v2.name)
-    #
+    # 8->9
     # from Extraction Notice Bid MD to Extraction Technology MD
     builder.add_edge(extraction_notice_bid_md_node_v2.name, post_extraction_md_node_v2.name)
-    # 12-> 13
+    # 9->END
     # from Post-Extraction to Generate Excel And Docx
     builder.add_edge(post_extraction_md_node_v2.name, END)
-    # # 13-> END
-    # # from Generate Excel And Docx to END
-    # builder.add_edge(generate_excel_and_docx_node_v1.name, END)
     # Compile graph
     #
     

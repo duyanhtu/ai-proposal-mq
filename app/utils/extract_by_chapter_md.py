@@ -189,13 +189,13 @@ def extract_chapter_smart(md_path, chapter_num=None, chapter_title=None):
     # Method 1: Look for explicit markdown headings with chapter patterns
     heading_pattern = re.compile(r'^(#{1,3})\s+(.*?)$', re.MULTILINE)
 
-    # Updated chapter pattern to better match Vietnamese documents
+   # Updated chapter pattern to better match Vietnamese documents
     chapter_pattern = re.compile(
-        r'^(Chương|Chapter|CHƯƠNG|CHAPTER)\s+([0-9IVX]+)(?:[\s\.:\-]+(.*))?', re.IGNORECASE)
+        r'^(Chương|Chapter|CHƯƠNG|CHAPTER|Phần|PHẦN)\s+([0-9IVX]+)(?:[\s\.:\-]+(.*))?', re.IGNORECASE)
 
     # New pattern for uppercase chapter titles
     uppercase_chapter_pattern = re.compile(
-        r'^(CHƯƠNG|CHAPTER)\s+([0-9IVX]+)', re.MULTILINE)
+        r'^(CHƯƠNG|CHAPTER|PHẦN)\s+([0-9IVX]+)', re.MULTILINE)
 
     # Pattern for bold markdown in headings (e.g., # **Chương II.**)
     bold_pattern = re.compile(r'\*\*(.*?)\*\*')
@@ -289,7 +289,7 @@ def extract_chapter_smart(md_path, chapter_num=None, chapter_title=None):
                 })
 
         # Method 2: Check for chapter patterns without markdown headings
-        elif re.match(r'^(Chương|Chapter|CHƯƠNG|CHAPTER)\s+([0-9IVX]+)', line, re.IGNORECASE):
+        elif re.match(r'^(Chương|Chapter|CHƯƠNG|CHAPTER|Phần|PHẦN)\s+([0-9IVX]+)', line, re.IGNORECASE):
             # Look for special formatting indicators
             is_capitalized = line.upper() == line
             # Indentation as centering proxy
@@ -338,6 +338,8 @@ def extract_chapter_smart(md_path, chapter_num=None, chapter_title=None):
                 "followed_by_blank": followed_by_blank_line
             })
 
+        # Method 3: Check for bold chapter pattern without markdown headings
+
     # De-duplicate and merge results from different methods
     merged_chapters = filter_real_chapters(chapter_candidates)
 
@@ -350,9 +352,9 @@ def extract_chapter_smart(md_path, chapter_num=None, chapter_title=None):
             if chapter_num is not None:
                 # Try to extract chapter number
                 num_match = re.search(
-                    r"Chương\s+(\d+|[IVXLCDM]+)", chapter["title"], re.IGNORECASE)
+                    r"(Chương|Phần)\s+(\d+|[IVXLCDM]+)", chapter["title"], re.IGNORECASE)
                 if num_match:
-                    ch_num = num_match.group(1)
+                    ch_num = num_match.group(2)
                     if ch_num.isdigit() and int(ch_num) == chapter_num:
                         target_chapter = chapter
                         target_idx = idx

@@ -50,12 +50,16 @@ def consume_callback(ch, method, properties, body):
         body=message.get("body", "")
         recipient=message.get("recipient", "")
         attachment_paths=message.get("attachment_paths", None)
+        # Insert History SQL With hs_id and step SENT_MAIL
+        inserted_step_send_mail = postgre.insertHistorySQL(hs_id=hs_id, step="SENT_MAIL")
+        # Insert History SQL With hs_id and step COMPELETE
+        inserted_step_compelete = postgre.insertHistorySQL(hs_id=hs_id, step="COMPELETE")
         response = send_email_with_attachments(
             email_address=EnvSettings().GMAIL_ADDRESS,
             app_password=EnvSettings().GMAIL_APP_PASSWORD,
             subject=subject,
             body=body,
-            recipient=recipient,
+            to_emails=recipient,
             attachment_paths=attachment_paths,
         )
         if response["success"]:
@@ -69,7 +73,9 @@ def consume_callback(ch, method, properties, body):
                 params12 = (hs_id,)
                 postgre.executeSQL(sql12, params12)
                 print(" [v] Email sent successfully")
-                inserted_step_send_mail = postgre.insertHistorySQL(hs_id=hs_id, step="SENT_MAIL")
+                
+                # Update Hisotry End Date SQL with SENT_MAIL
+                postgre.updateHistoryEndDateSQL(inserted_step_send_mail)
                 if not inserted_step_send_mail:
                     print("Không insert được trạng thái 'SENT_MAIL' vào history với hs_id: %s", hs_id)
             else:
@@ -83,7 +89,9 @@ def consume_callback(ch, method, properties, body):
                 if file_path and os.path.exists(file_path):
                     os.remove(file_path)
                     print(f"Deleted file: {file_path}")
-        inserted_step_compelete = postgre.insertHistorySQL(hs_id=hs_id, step="COMPELETE")
+        
+        # Update Hisotry End Date SQL with COMPELETE
+        postgre.updateHistoryEndDateSQL(inserted_step_compelete)
         if not inserted_step_compelete:
             print("Không insert được trạng thái 'COMPELETE' vào history với hs_id: %s", hs_id)
         return {"status": "success", "message": "Thành công"}

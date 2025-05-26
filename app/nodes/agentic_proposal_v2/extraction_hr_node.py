@@ -2,6 +2,7 @@
 import time
 
 # Third party imports
+from concurrent.futures import ThreadPoolExecutor
 from langchain_core.prompts import ChatPromptTemplate
 
 # Your imports
@@ -14,34 +15,31 @@ logger = get_logger("except_handling_extraction")
 
 class ExtractionHRMDNodeV2m0p0:
     """
-    ExtractionHRMDNodeV2m0p0:
-    Bóc tách thông tin các yêu cầu về nhân sự trong hồ sơ mời thầu .
-    - Input: chapter_content: List[str]
-    - Output: result_extraction_hr: Any (json)
+        Node bóc tách dữ liệu về nhân sự (HR) từ nội dung markdown trong hồ sơ mời thầu.
+        - Sử dụng mô hình ngôn ngữ để phân tích các chương liên quan 'HSKT', 'TCDG' và trích xuất các yêu 
+        cầu về nhân sự như vị trí, số lượng, kinh nghiệm, chứng chỉ, biểu mẫu, v.v.
 
-    Improvement:
-    - update prompt:
-        - lấy thêm biểu mẫu yêu cầu của hồ sơ cho từng requirement.
-        - bổ sung ví dụ với nhiều tình huống để model hiểu hơn.
+        Args: 
+            name (str): tên Node
     """
 
     def __init__(self, name: str):
         self.name = name
 
-    # Defining __call__ method
-    def __call__(self, state: StateProposalV1):
-        print(self.name)
+    def process_single_content(self, content: str):
+        """
+            Xử lý một chuỗi nội dung đơn lẻ đồng bộ.
+
+            Args:
+                content (str): Nội dung của một chương (HSKT hoặc TCDG) dưới dạng chuỗi Markdown.
+
+            Returns:
+                List[Dict[str, Any]]: Danh sách yêu cầu nhân sự đã bóc tách, mỗi phần tử gồm:
+                    - position (str)
+                    - quantity (int)
+                    - requirements (List[Dict[str, str]]) gồm name, description, document_name
+        """
         try:
-            start_time = time.perf_counter()
-            chapter_content = state["document_content_markdown_hsmt"]
-            # Không có chương liên quan để bóc tách
-            if len(chapter_content) < 1:
-                return {
-                    "result_extraction_hr": [],
-                }
-            # Có chương liên quan
-            # Gọi model xử lý bóc tách dữ liệu về yêu cầu nhân sự
-            # 8. Những yêu cầu chung như "Bản sao công chứng/chứng thực trong thời hạn không quá 06 tháng tính đến thời điểm đóng thầu các bằng cấp, chứng chỉ" phải được trích xuất và ghi nhận trong phần "notes" của vị trí công việc.
             prompt_template = """
                 Bạn là một chuyên gia trích xuất các yêu cầu của hồ sơ mời thầu.
                 Chỉ căn cứ vào nội dung hồ sơ mời thầu được cung cấp dưới đây. Hãy lấy các yêu cầu về nhân sự theo quy tắc sau:
@@ -125,27 +123,64 @@ class ExtractionHRMDNodeV2m0p0:
             """
 
             chat_prompt_template = ChatPromptTemplate.from_template(prompt_template)
-
-            prompt = chat_prompt_template.invoke({"content": chapter_content})
-
+            prompt = chat_prompt_template.invoke({"content": content})
             response = (
                 llm.chat_model_gpt_4o_mini()
                 .with_structured_output(None, method="json_mode")
-                .invoke(
-                    prompt,
-                )
+                .invoke(prompt)
             )
-            print(response)
+            print(f"response: {response}")
+            return response["hr"]
+        except Exception as e:
+            logger.error(f"Error processing content: {str(e)}")
+            return []
+
+    def __call__(self, state: StateProposalV1):
+        """
+            Hàm chính để thực thi việc bóc tách thông tin nhân sự từ các chương liên quan trong hồ sơ.
+
+            Nội dung từ các chương `document_content_markdown_hskt` và `document_content_markdown_tcdg`
+            sẽ được xử lý song song qua ThreadPoolExecutor để tối ưu hiệu năng.
+
+            Args:
+                state (StateProposalV1): Trạng thái pipeline chứa dữ liệu Markdown từ các chương của hồ sơ.
+
+            Returns:
+                dict: Kết quả dưới dạng:
+                    {
+                        "result_extraction_hr": List[Dict[str, Any]],  # Danh sách yêu cầu nhân sự
+                        "error_messages": Optional[List[str]]          # Nếu có lỗi xảy ra
+                    }
+        """
+        print(self.name)
+        try:
+            start_time = time.perf_counter()
+            hr_input_content = [
+                *state["document_content_markdown_hskt"],
+                *state["document_content_markdown_tcdg"],
+            ]
+            # Không có chương liên quan để bóc tách
+            if len(hr_input_content) < 1:
+                return {
+                    "result_extraction_hr": [],
+                }
+            # Xử lý song song các nội dung trong hr_input_content bằng ThreadPoolExecutor
+            with ThreadPoolExecutor(max_workers=4) as executor:
+                results = list(executor.map(self.process_single_content, hr_input_content))
+            # Gộp kết quả từ tất cả các nội dung
+            combined_results = []
+            for res in results:
+                combined_results.extend(res)
             finish_time = time.perf_counter()
             print(f"Total time: {finish_time - start_time} s")
             return {
-                "result_extraction_hr": response["hr"],
+                "result_extraction_hr": combined_results,
             }
         except Exception as e:
             error_msg = format_error_message(
                 node_name=self.name,
                 e=e,
-                context=f"hs_id: {state.get('hs_id', '')}", 
+                context=f"hs_id: {state.get('hs_id', '')}",
                 include_trace=True
             )
             return {

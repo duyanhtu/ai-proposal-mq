@@ -14,42 +14,63 @@ logger = get_logger("except_handling_extraction")
 
 class ClassifyDocumentPdfNodeV2m0p0:
     """
-    ClassifyDocumentPdfNodeV2m0p0.
-    Chọc vào DB bảng email_contents để lấy được file temp + id
-    - Input: 
-        - Select in DB email_contents with status CHUA_XU_LY
-        - Run download_drive_file to download the file from google drive and take the temp file path
-    - Output:   
-        - email_content_id: str
-        - document_content: list[str]
-        - filename: str
-    """
+        Kiểm tra nội dung theo chapter_name 'TBMT', 'HSKT', 'HSMT' để lưu vào state phục vụ cho việc gửi file tương ứng nếu có dữ liệu.
 
+        Args:
+            name (str): tên node
+    """
     def __init__(self, name: str):
         self.name = name
 
     # Defining __call__ method
     def __call__(self, state: StateProposalV1):
+        """
+            Kiểm tra nội dung theo chapter_name 'TBMT', 'HSKT', 'HSMT' để lưu vào state phục vụ cho việc gửi file tương ứng nếu có dữ liệu.
+
+            Processing:
+                1. Kiểm tra nội dung markdown có rỗng hay không bao gồm:
+                    state["document_content_markdown_tbmt"]
+                    state["document_content_markdown_hskt"]
+                2. Cập nhật trạng thái status='DANG_XU_LY' trong bảng email_contents theo hs_id và type khác 'unknown'
+
+            Args:
+                state (StateProposalV1): 
+                    state["hs_id"] (str): Mã định danh của hồ sơ.
+                    state["document_content_markdown_tbmt"] (List[str]): Danh sách nội dung file TBMT
+                    state["document_content_markdown_hskt"] (List[str]): Danh sách nội dung file HSKT
+
+            Returns:
+                state (StateProposalV1):
+                        - state["email_content_id"] (str): ID của bản ghi tài liệu email (nếu có).
+                        - state["document_content_markdown_tbmt"] (List[str]): Danh sách nội dung file TBMT
+                        - state["document_content_markdown_hskt"] (List[str]): Danh sách nội dung file HSKT
+                        - state["agentai_name"] (str): proposal_team_v1.0.0
+                        - state["agentai_code"] (str): AGENTAI CODE
+                        -
+            Exceptions:
+                Nếu có lỗi, các trường sẽ trả về list rỗng và có thêm trường "error_messages".
+        """
+
         print(self.name)
         try:
             hs_id = state["hs_id"]
-            # Kiểm tra nội dung markdown có rỗng hay không
-            is_exist_content_markdown_tbmt = bool(state["document_content_markdown_tbmt"].strip())
-            is_exist_content_markdown_hskt = bool(state["document_content_markdown_hskt"].strip())
-            is_exist_content_markdown_hsmt = bool(state["document_content_markdown_hsmt"].strip())
+            # 1. Kiểm tra nội dung markdown có rỗng hay không
+            is_exist_content_markdown_tbmt = bool(state["document_content_markdown_tbmt"])
+            is_exist_content_markdown_hskt = bool(state["document_content_markdown_hskt"])
+            is_exist_content_markdown_hsmt = bool(state["document_content_markdown_hsmt"])
             logger.info(
                 "Markdown content exists - TBMT: %s, HSKT: %s, HSMT: %s",
                 is_exist_content_markdown_tbmt,
                 is_exist_content_markdown_hskt,
                 is_exist_content_markdown_hsmt
             )
-            # Cập nhật trạng thái DB -> 'DANG_XU_LY'
+            # 2. Cập nhật trạng thái DB -> 'DANG_XU_LY'
             executeSQL(
                 f"UPDATE email_contents SET status='DANG_XU_LY' WHERE hs_id = '{hs_id}' AND type <> 'unknown'")
             return {
-                "is_exist_contnet_markdown_tbmt": is_exist_content_markdown_tbmt,
-                "is_exist_contnet_markdown_hskt": is_exist_content_markdown_hskt,
-                "is_exist_contnet_markdown_hsmt": is_exist_content_markdown_hsmt,
+                "is_exist_content_markdown_tbmt": is_exist_content_markdown_tbmt,
+                "is_exist_content_markdown_hskt": is_exist_content_markdown_hskt,
+                "is_exist_content_markdown_hsmt": is_exist_content_markdown_hsmt,
                 "agentai_name": "proposal_team_v1.0.0",
                 "agentai_code": "AGENTAI CODE"
             }
@@ -61,8 +82,8 @@ class ClassifyDocumentPdfNodeV2m0p0:
                 include_trace=True
             )
             return {
-                "is_exist_contnet_markdown_tbmt": False,
-                "is_exist_contnet_markdown_hskt": False,
-                "is_exist_contnet_markdown_hsmt": False,
+                "is_exist_content_markdown_tbmt": False,
+                "is_exist_content_markdown_hskt": False,
+                "is_exist_content_markdown_hsmt": False,
                 "error_messages": [error_msg],
             }

@@ -12,6 +12,9 @@ from app.nodes.agentic_proposal.proposal_md_team_v1_0_2 import (
 from app.nodes.agentic_proposal.proposal_md_team_v1_0_3 import (
     proposal_md_team_graph_v1_0_3_instance,
 )
+from app.nodes.agentic_proposal_v2.proposal_md_team_v2_0_0 import (
+    proposal_md_team_graph_v2_0_0_instance,
+)
 from app.storage import pgdb, postgre
 from app.utils.logger import get_logger
 
@@ -104,9 +107,8 @@ def consume_callback(ch, method, properties, body):
                 "proposal_id": res["proposal_id"],
                 "email_content_id": res["email_content_id"],
                 "is_data_extracted_finance": res["is_data_extracted_finance"],
-                "is_exist_contnet_markdown_hskt": res["is_exist_contnet_markdown_hskt"],
-                "is_exist_contnet_markdown_tbmt": res["is_exist_contnet_markdown_tbmt"],
-                "is_exist_contnet_markdown_hsmt": res["is_exist_contnet_markdown_hsmt"],
+                "is_exist_content_markdown_hskt": res["is_exist_content_markdown_hskt"],
+                "is_exist_content_markdown_tbmt": res["is_exist_content_markdown_tbmt"],
             }
             rabbit_mq.publish(queue=next_queue, message=next_message)
         except KeyError as ke:
@@ -124,6 +126,59 @@ def consume_callback(ch, method, properties, body):
         logger.error(
             f" [!] Error: Something was wrong: {body}", exc_info=True)
 
+def consume_callback_v2(ch, method, properties, body):
+    """Xử lý tin nhắn nhận được từ queue."""
+    try:
+        message = json.loads(body.decode("utf-8"))  # Giải mã JSON
+        logger.info(f" [x] Received: {message}\n")
+        hs_id = message["id"]
+        files = message["files"]
+        inputs = {"hs_id": hs_id, "document_file_md": files}
+        try:
+            # Insert History SQL
+            inserted_step_extraction = postgre.insertHistorySQL(
+                hs_id=hs_id, step="EXTRACTION"
+            )
+            res = proposal_md_team_graph_v2_0_0_instance.invoke(
+                inputs,
+                config={
+                    "callbacks": [langfuse_handler.env_ai_proposal()],
+                    "metadata": {
+                        "langfuse_user_id": f"extraction_sub_{hs_id}@hpt.vn",
+                    },
+                },
+            )
+            
+            # Update Hisotry End Date SQL
+            postgre.updateHistoryEndDateSQL(inserted_step_extraction)
+            if not inserted_step_extraction:
+                logger.error(
+                    "Không insert được trạng thái 'EXTRACTION' vào history với hs_id: %s",
+                    hs_id,
+                )
+            next_queue = RABBIT_MQ_SQL_ANSWER_QUEUE
+            next_message = {
+                "hs_id": hs_id,
+                "proposal_id": res["proposal_id"],
+                "email_content_id": res["email_content_id"],
+                "is_data_extracted_finance": res["is_data_extracted_finance"],
+                "is_exist_content_markdown_hskt": res["is_exist_content_markdown_hskt"],
+                "is_exist_content_markdown_tbmt": res["is_exist_content_markdown_tbmt"],
+                "is_exist_content_markdown_hsmt": res["is_exist_content_markdown_hsmt"],
+            }
+            rabbit_mq.publish(queue=next_queue, message=next_message)
+        except KeyError as ke:
+            logger.error(
+                f" [!] KeyError: Missing 'proposal_id' in response: {ke}", exc_info=True
+            )
+        except Exception as e:
+            logger.error(f" [!] Unexpected error during invoke: {e}", exc_info=True)
+        logger.info(f"Done with {hs_id}")
+        return res
+    except json.JSONDecodeError:
+        logger.error(f" [!] Error: Invalid JSON format: {body}", exc_info=True)
+    except Exception:
+        logger.error(f" [!] Error: Something was wrong: {body}", exc_info=True)
 
 def extraction_sub():
     """
@@ -136,4 +191,4 @@ def extraction_sub():
     # Register the signal handler for SIGINT (Ctrl+C)
     signal.signal(signal.SIGINT, signal_handler)
     queue = RABBIT_MQ_EXTRACTION_QUEUE
-    rabbit_mq.start_consumer(queue, consume_callback)
+    rabbit_mq.start_consumer(queue, consume_callback_v2)

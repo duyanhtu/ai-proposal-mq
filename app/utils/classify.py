@@ -6,10 +6,11 @@ import tempfile
 # Add these imports at the top of your file
 import time
 import traceback  # Add these imports at the top of your file
-from typing import Any, Dict
 import uuid
+from typing import Any, Dict
 
 import fitz
+import pymupdf4llm
 from minio.error import S3Error
 
 from app.config.env import EnvSettings
@@ -103,10 +104,12 @@ def classify(hs_id: str, email: str):
                         # Handle text-based PDF
                         logger.info(
                             f"File {file_name} is a text PDF, proceeding with classification.")
-                        classify_type = "TEXT"
+                        # classify_type = "TEXT"
+                        classify_type = "IMAGE"
 
                         # Extract text from text-based PDF
-                        extracted_text = extract_text_from_pdf(temp_file_path)
+                        extracted_text = pymupdf4llm.to_markdown(
+                            temp_file_path)
 
                 elif file_ext == '.docx':
                     # Handle DOCX file
@@ -179,7 +182,8 @@ def classify(hs_id: str, email: str):
 
                         if doc_type != "unknown":
                             files_object.append({
-                                "id": id, "file_name": file_name, "file_type": doc_type,
+                                "email_content_id": id,
+                                "bucket": link.split("/")[0], "file_name": file_name, "file_type": doc_type,
                                 "file_path": link, "classify_type": classify_type,
                                 "markdown_link": markdown_link
                             })
@@ -197,11 +201,11 @@ def classify(hs_id: str, email: str):
 
                     if doc_type != "unknown":
                         files_object.append({
-                            "id": id, "file_name": file_name, "file_type": doc_type,
+                            "email_content_id": id,
+                            "bucket": link.split("/")[0], "file_name": file_name, "file_type": doc_type,
                             "file_path": link, "classify_type": classify_type,
                             "markdown_link": ""
                         })
-
             except S3Error as e:
                 error_msg = f"Error downloading file {file_name}: {str(e)}"
                 logger.error(error_msg)
@@ -228,12 +232,13 @@ def classify(hs_id: str, email: str):
             sql = "UPDATE email_contents SET end_process_date = now() AT TIME ZONE 'UTC' WHERE hs_id=%s"
             params = (hs_id,)
             postgre.executeSQL(sql, params)
+            # Update History End Date SQL
+            postgre.updateHistoryEndDateSQL(inserted_step_exception_classify)
             return {"status": "error", "message": "Không có file Hồ sơ mời thầu trong bộ file được tải lên!"}
 
         logger.debug(f"Files object: {files_object}")
         message = {
             "id": hs_id,
-            "bucket": MINIO_BUCKET,
             "files": files_object,
         }
         return {"status": "success", "message": message}
@@ -375,6 +380,11 @@ def classify_document_from_text(text, file_name=None):
         status = "CHUA_XU_LY"
 
         match True:
+            case _ if "tiêu chuẩn đánh giá về kỹ thuật" in text_lower and "chỉ dẫn nhà thầu" not in text_lower:
+                # This is a case for TCDGKT documents
+                doc_type = "TCDGKT"
+                if file_name:
+                    logger.info(f"Classified {file_name} as TCDGKT")
             # HSMT must contain specific section identifiers beyond just the title
             case _ if "hồ sơ mời thầu" in text_lower and any(keyword in text_lower for keyword in
                                                              ["chỉ dẫn nhà thầu", "chỉ dẫn đối với nhà thầu", "bảng dữ liệu đấu thầu", "phần 1:", "phần 2:"]):
@@ -551,73 +561,6 @@ def pdf_image_to_text_batch(pdf_path, page_batch_size=5):
             pdf_document.close()
 
 
-""" def convert_doc_to_docx(doc_path):
-    
-    Converts a .doc file to .docx format using LibreOffice
-
-    Args:
-        doc_path: Path to the .doc file
-
-    Returns:
-        str: Path to the converted .docx file or None if conversion failed
-    
-    try:
-        # Get directory and filename
-        file_dir = os.path.dirname(doc_path)
-        file_name = os.path.basename(doc_path)
-        file_base = os.path.splitext(file_name)[0]
-
-        # Create output path
-        output_path = os.path.join(file_dir, f"{file_base}.docx")
-
-        # Define potential LibreOffice paths on Windows
-        libreoffice_paths = [
-            r"C:\Program Files\LibreOffice\program\soffice.exe",
-            r"C:\Program Files (x86)\LibreOffice\program\soffice.exe",
-            # Add other potential paths if needed
-        ]
-
-        # Find the first valid path
-        soffice_path = None
-        for path in libreoffice_paths:
-            if os.path.exists(path):
-                soffice_path = path
-                break
-
-        if not soffice_path:
-            logger.error(
-                "LibreOffice not found. Please install LibreOffice or provide the correct path.")
-            return None
-
-        # LibreOffice command to convert .doc to .docx
-        cmd = [
-            soffice_path,
-            "--headless",
-            "--convert-to", "docx",
-            "--outdir", file_dir,
-            doc_path
-        ]
-
-        logger.info(
-            f"Converting {doc_path} to DOCX format using {soffice_path}")
-        process = subprocess.run(cmd, capture_output=True, text=True)
-
-        if process.returncode != 0:
-            logger.error(f"Conversion failed: {process.stderr}")
-            return None
-
-        if os.path.exists(output_path):
-            logger.info(f"Successfully converted to {output_path}")
-            return output_path
-        else:
-            logger.error("Conversion completed but output file not found")
-            return None
-
-    except Exception as e:
-        logger.error(f"Error converting DOC to DOCX: {str(e)}")
-        return None """
-
-
 def extract_text_from_pdf(pdf_path):
     """
     Extracts text from a text-based PDF file.
@@ -684,6 +627,8 @@ def extract_text_from_docx(docx_path):
         return ""
 
 # Created by TUTDA
+
+
 def check_hsmt_file_type(files_object: dict) -> Dict[str, Any]:
     """
     Description:
@@ -695,8 +640,15 @@ def check_hsmt_file_type(files_object: dict) -> Dict[str, Any]:
     Returns:
         dict: {"status": str, "message": Any}
     """
+    if isinstance(files_object, str):
+        return {"status": "error", "message": f"{files_object}"}
     files = files_object.get("files", [])
     hsmt_count = sum(1 for f in files if f.get("file_type") == "HSMT")
-    if hsmt_count > 1:
-        return {"status": "error", "message": "There is more than one file with type 'HSMT'"}
-    return {"status": "success", "message": files_object}
+    tct_count = sum(1 for f in files if f.get("file_type") == "TCT")
+    if (hsmt_count == 1 and tct_count == 0) or (tct_count == 1 and hsmt_count == 0):
+        return {"status": "success", "message": files_object}
+
+    return {
+        "status": "error",
+        "message": f"Invalid file types. Expected exactly 1 'HSMT' or 1 'TCT'. Found HSMT: {hsmt_count}, TCT: {tct_count}."
+    }

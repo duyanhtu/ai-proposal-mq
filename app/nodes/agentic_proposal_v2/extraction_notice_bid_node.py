@@ -72,7 +72,7 @@ class ExtractionNoticeBidMDNodeV2m0p0:
             # Tạo prompt cho model
             chat_prompt_template = ChatPromptTemplate.from_template(prompt_template)
 
-            prompt = chat_prompt_template.invoke({"content": chapter_content})
+            prompt = chat_prompt_template.invoke({"content": "\n\n".join(chapter_content)})
 
             response = (
                 llm.chat_model_gpt_4o_mini()
