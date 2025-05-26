@@ -3,9 +3,10 @@ import os
 import signal
 import sys
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from app.config.env import EnvSettings
 from app.mq.rabbit_mq import RabbitMQClient
-from app.storage.postgre import insertHistorySQL
+from app.storage.postgre import insertHistorySQL, updateHistoryEndDateSQL
 from app.utils.classify import check_hsmt_file_type, classify
 from app.utils.logger import get_logger
 from app.utils.smtp_mail import send_email_with_attachments
@@ -66,13 +67,15 @@ def consume_callback(ch, method, properties, body):
     print(f" [x] Received: {message}")
     hs_id = message["id"]
     email = message["email"]
-    # Tutda edit
+    # Insert History SQL
+    inserted_step_classify = insertHistorySQL(hs_id=hs_id, step="CLASSIFY")
     to_emails=EnvSettings().GMAIL_RECIPIENT
+    now=datetime.now(ZoneInfo("Asia/Ho_Chi_Minh"))
     send_email_with_attachments(
         email_address=EnvSettings().GMAIL_ADDRESS,
         app_password=EnvSettings().GMAIL_APP_PASSWORD,
         subject="Hồ sơ mới đã được gửi đến hệ thống",
-        body=f"Hệ thống ghi nhận có hồ sơ {hs_id} gửi đến từ {email} vào lúc {datetime.now().strftime("%d-%m-%Y %H:%M:%S")}",
+        body=f"Hệ thống ghi nhận có hồ sơ {hs_id} gửi đến từ {email} vào lúc {now.strftime("%d-%m-%Y %H:%M:%S")}",
         to_emails=to_emails.split(","),
         attachment_paths=None,
     )
@@ -82,10 +85,8 @@ def consume_callback(ch, method, properties, body):
     message = result_check_hsmt["message"]
     if status == "success":
         print(f" [x] Classify success: {message}")
-        inserted_step_classify = insertHistorySQL(hs_id=hs_id, step="CLASSIFY")
-        if not inserted_step_classify:
-            print(
-                "Không insert được trạng thái 'CLASSIFY' vào history với hs_id: %s", hs_id)
+        # Update history end date with inserted_step_classify
+        updateHistoryEndDateSQL(inserted_step_classify)
         next_queue = RABBIT_MQ_MARKDOWN_QUEUE
         rabbit_mq.publish(next_queue, message)
     else:

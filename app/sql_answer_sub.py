@@ -53,9 +53,8 @@ def consume_callback(ch, method, properties, body):
         proposal_id = message["proposal_id"]
         email_content_id = message["email_content_id"]
         is_data_extracted_finance = message["is_data_extracted_finance"]
-        is_exist_contnet_markdown_hskt = message["is_exist_contnet_markdown_hskt"]
-        is_exist_contnet_markdown_tbmt = message["is_exist_contnet_markdown_tbmt"]
-        is_exist_contnet_markdown_hsmt = message["is_exist_contnet_markdown_hsmt"]
+        is_exist_content_markdown_hskt = message["is_exist_content_markdown_hskt"]
+        is_exist_content_markdown_tbmt = message["is_exist_content_markdown_tbmt"]
         sql = """
                 select fr.id,fr.proposal_id, fr.requirements , fr.description, p.closing_time,p.release_date,p.decision_number,
                 p.project,p.package_number,p.selection_method,p.field,p.execution_duration,p.validity_period,p.security_amount
@@ -102,16 +101,18 @@ def consume_callback(ch, method, properties, body):
             },
             "email_content_id": email_content_id,
             "is_data_extracted_finance": is_data_extracted_finance,
-            "is_exist_contnet_markdown_hskt": is_exist_contnet_markdown_hskt,
-            "is_exist_contnet_markdown_tbmt": is_exist_contnet_markdown_tbmt,
-            "is_exist_contnet_markdown_hsmt": is_exist_contnet_markdown_hsmt,
+            "is_exist_content_markdown_hskt": is_exist_content_markdown_hskt,
+            "is_exist_content_markdown_tbmt": is_exist_content_markdown_tbmt,
         }
         try:
+            # Insert History SQL
+            inserted_step_sql_answer = postgre.insertHistorySQL(hs_id=hs_id, step="SQL_ANSWER")
             res = sql_team_graph_v1_0_1_instance.invoke(
                 inputs
             )
+            # Update Hisotry End Date SQL
+            postgre.updateHistoryEndDateSQL(inserted_step_sql_answer)
             if is_data_extracted_finance:
-                inserted_step_sql_answer = postgre.insertHistorySQL(hs_id=hs_id, step="SQL_ANSWER")
                 if not inserted_step_sql_answer:
                     print(f"Không insert được trạng thái 'SQL_ANSWER' vào history với hs_id: {hs_id}")
             logger.info("[v] Done run graph and inserted finance requirement.")

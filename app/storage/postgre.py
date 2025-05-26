@@ -65,16 +65,37 @@ def executeSQL(query: str, params: Optional[tuple] = None) -> Optional[any]:
         print(f"Error executing query: {e}")
         raise
 
-def insertHistorySQL(hs_id: str, step: str) -> bool:
+def insertHistorySQL(hs_id: str, step: str) -> int|None:
     """Insert a record into the history table."""
     query = """
         INSERT INTO histories (hs_id, step)
         VALUES (%s, %s)
+        RETURNING id;
     """
     try:
         with psycopg2.connect(CONNECTION_STRING) as conn:
             with conn.cursor() as cur:
                 cur.execute(query, (hs_id, step))
+                inserted_id = cur.fetchone()[0]
+                conn.commit()
+                return inserted_id
+    except Exception as e:
+        if 'conn' in locals():
+            conn.rollback()
+        print(f"Error inserting into history: {e}")
+        return None
+
+def updateHistoryEndDateSQL(id_hisotry: int) -> bool:
+    """Cập nhật thời gian kết thúc thực hiện vào bảng History với hs_id và step"""
+    query = """
+        UPDATE histories
+        SET endDate = NOW()
+        WHERE id = %s
+    """
+    try:
+        with psycopg2.connect(CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+                cur.execute(query, (id_hisotry,))
                 conn.commit()
                 return True
     except Exception as e:

@@ -190,6 +190,9 @@ def consume_callback(ch, method, properties, body):
         logger.info(f" [x] Received: {message}")
         # 1. Query trong bảng email contents theo hs_id
         hs_id = message["id"]
+        # Insert History SQL
+        inserted_step_chapter_splitter = postgre.insertHistorySQL(
+            hs_id=hs_id, step="CHAPTER_SPLITER")
         query = """ 
             SELECT ec.id
             FROM email_contents ec
@@ -283,7 +286,6 @@ def consume_callback(ch, method, properties, body):
                         queue=RABBIT_MQ_SEND_MAIL_QUEUE,
                         message=message,
                     )
-
                     return
 
                 for rpc in results_processed_chapter:
@@ -332,7 +334,7 @@ def consume_callback(ch, method, properties, body):
                 RETURNING id;
             """
             params = (email_content_id,
-                      file["file_name"], file["file_path"], file["file_path"] if classify_type != 'TEXT' else markdown_link, file["chapter_name"])
+                      file["file_name"], file["file_path"], file["markdown_link"], file["chapter_name"])
             inserted_id = postgre.executeSQL(sql, params)
             if inserted_id:
                 # Gán ID vào files_object
@@ -341,11 +343,8 @@ def consume_callback(ch, method, properties, body):
         # files_object = [
         #     {k: v for k, v in file.items() if k != "file_type"} for file in files_object
         # ]
-        inserted_step_chapter_splitter = postgre.insertHistorySQL(
-            hs_id=hs_id, step="CHAPTER_SPLITER")
-        if not inserted_step_chapter_splitter:
-            print(
-                "Không insert được trạng thái 'CHAPTER_SPLITER' vào history với hs_id: %s", hs_id)
+        # Update Hisotry End Date SQL
+        postgre.updateHistoryEndDateSQL(inserted_step_chapter_splitter)
         if files_object:
             next_queue = RABBIT_MQ_EXTRACTION_QUEUE
             next_message = {"id": hs_id, "files": files_object}

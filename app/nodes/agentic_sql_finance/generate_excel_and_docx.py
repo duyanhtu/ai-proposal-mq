@@ -47,20 +47,14 @@ class GenerateExcelAndDocxNodeV1:
         response_excel, response_docx, response_md_content = None, None, None
         # Tạo file Excel nếu có HSMT
         timestamp = datetime.now().strftime("%Y_%m_%d_%S_%M_%H")
-        if state["is_exist_contnet_markdown_hsmt"]:
+        if state["is_exist_content_markdown_hsmt"]:
             response_excel = process_excel_file_no_upload_with_compliance(
                 results[0]["id"],
                 output_filename=f"Checklist_HSMT_{results[0]["id"]}_{timestamp}",
             )
-            response_md_content = convert_md_to_docx(
-                results[0]["summary"],
-                output_filename=f"Tomtat_HSMT_{results[0]["id"]}_{timestamp}",
-            )
-            # Parse JSON string if necessary
-            response_md_content = json.loads(response_md_content.body)
 
         # Xuất DOCX nếu có HSKT
-        if state["is_exist_contnet_markdown_hskt"]:
+        if state["is_exist_content_markdown_hskt"]:
             response_docx = export_docs_from_file(
                 results[0]["id"], output_filename=f"TBDU_Kythuat_{results[0]["id"]}_{timestamp}"
             )
@@ -71,7 +65,6 @@ class GenerateExcelAndDocxNodeV1:
         temp_file_path = [
             response_excel.path if response_excel else None,
             response_docx["file_path"] if response_docx else None,
-            response_md_content["file_path"] if response_md_content else None,
         ]
         temp_file_path_filtered = [
             path for path in temp_file_path if path is not None]

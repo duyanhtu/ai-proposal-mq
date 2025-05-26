@@ -80,7 +80,6 @@ class ProposalV1_0_3(BaseModel):
     closing_time: str
     validity_period: str 
     security_amount: str
-    summary: str
 
 # Finance requirement table
 class FinanceRequirement(BaseModel):
@@ -291,7 +290,7 @@ def insert_proposal_v1_0_3(proposal_info: ProposalV1_0_3):
         agentai_name, agentai_code, filename,
         email_content_id, status, selection_method,
         field, execution_duration, closing_time,
-        validity_period, security_amount, summary
+        validity_period, security_amount
         )
     VALUES
         ('{proposal_info.investor_name}','{proposal_info.proposal_name}',
@@ -300,7 +299,7 @@ def insert_proposal_v1_0_3(proposal_info: ProposalV1_0_3):
         '{proposal_info.agentai_name}','{proposal_info.agentai_code}','{proposal_info.filename}',
         {proposal_info.email_content_id}, '{proposal_info.status}', '{proposal_info.selection_method}',
         '{proposal_info.field}', '{proposal_info.execution_duration}', {proposal_info.closing_time},
-        '{proposal_info.validity_period}', '{proposal_info.security_amount}', '{proposal_info.summary}'
+        '{proposal_info.validity_period}', '{proposal_info.security_amount}'
         ) 
     RETURNING id;
 """

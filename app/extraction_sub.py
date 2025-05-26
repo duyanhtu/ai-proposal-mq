@@ -107,9 +107,8 @@ def consume_callback(ch, method, properties, body):
                 "proposal_id": res["proposal_id"],
                 "email_content_id": res["email_content_id"],
                 "is_data_extracted_finance": res["is_data_extracted_finance"],
-                "is_exist_contnet_markdown_hskt": res["is_exist_contnet_markdown_hskt"],
-                "is_exist_contnet_markdown_tbmt": res["is_exist_contnet_markdown_tbmt"],
-                "is_exist_contnet_markdown_hsmt": res["is_exist_contnet_markdown_hsmt"],
+                "is_exist_content_markdown_hskt": res["is_exist_content_markdown_hskt"],
+                "is_exist_content_markdown_tbmt": res["is_exist_content_markdown_tbmt"],
             }
             rabbit_mq.publish(queue=next_queue, message=next_message)
         except KeyError as ke:
@@ -136,6 +135,10 @@ def consume_callback_v2(ch, method, properties, body):
         files = message["files"]
         inputs = {"hs_id": hs_id, "document_file_md": files}
         try:
+            # Insert History SQL
+            inserted_step_extraction = postgre.insertHistorySQL(
+                hs_id=hs_id, step="EXTRACTION"
+            )
             res = proposal_md_team_graph_v2_0_0_instance.invoke(
                 inputs,
                 config={
@@ -145,9 +148,9 @@ def consume_callback_v2(ch, method, properties, body):
                     },
                 },
             )
-            inserted_step_extraction = postgre.insertHistorySQL(
-                hs_id=hs_id, step="EXTRACTION"
-            )
+            
+            # Update Hisotry End Date SQL
+            postgre.updateHistoryEndDateSQL(inserted_step_extraction)
             if not inserted_step_extraction:
                 logger.error(
                     "Không insert được trạng thái 'EXTRACTION' vào history với hs_id: %s",
@@ -159,9 +162,8 @@ def consume_callback_v2(ch, method, properties, body):
                 "proposal_id": res["proposal_id"],
                 "email_content_id": res["email_content_id"],
                 "is_data_extracted_finance": res["is_data_extracted_finance"],
-                "is_exist_contnet_markdown_hskt": res["is_exist_contnet_markdown_hskt"],
-                "is_exist_contnet_markdown_tbmt": res["is_exist_contnet_markdown_tbmt"],
-                "is_exist_contnet_markdown_hsmt": res["is_exist_contnet_markdown_hsmt"],
+                "is_exist_content_markdown_hskt": res["is_exist_content_markdown_hskt"],
+                "is_exist_content_markdown_tbmt": res["is_exist_content_markdown_tbmt"],
             }
             rabbit_mq.publish(queue=next_queue, message=next_message)
         except KeyError as ke:
