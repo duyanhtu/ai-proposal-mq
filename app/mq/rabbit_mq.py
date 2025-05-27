@@ -5,6 +5,7 @@ from typing import Callable
 import pika
 from pika.exceptions import AMQPConnectionError, ChannelClosedByBroker
 
+from app.config.env import EnvSettings
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -106,7 +107,7 @@ class RabbitMQClient:
                 logger.error(f"Unexpected error during publish: {e}")
                 raise
 
-    def start_consumer(self, queue, callback: Callable, auto_ack=False):
+    def start_consumer(self, queue, callback: Callable, auto_ack=EnvSettings().RABBIT_MQ_AUTO_ACKNOWLEDGE):
         """
         Bắt đầu consumer, lắng nghe queue với retry logic.
 
