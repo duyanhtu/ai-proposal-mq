@@ -69,16 +69,6 @@ def consume_callback(ch, method, properties, body):
     email = message["email"]
     # Insert History SQL
     inserted_step_classify = insertHistorySQL(hs_id=hs_id, step="CLASSIFY")
-    to_emails=EnvSettings().GMAIL_RECIPIENT
-    now=datetime.now(ZoneInfo("Asia/Ho_Chi_Minh"))
-    send_email_with_attachments(
-        email_address=EnvSettings().GMAIL_ADDRESS,
-        app_password=EnvSettings().GMAIL_APP_PASSWORD,
-        subject="Hồ sơ mới đã được gửi đến hệ thống",
-        body=f"Hệ thống ghi nhận có hồ sơ {hs_id} gửi đến từ {email} vào lúc {now.strftime("%d-%m-%Y %H:%M:%S")}",
-        to_emails=to_emails.split(","),
-        attachment_paths=None,
-    )
     result = classify(hs_id, email)
     result_check_hsmt = check_hsmt_file_type(result["message"])
     status = result_check_hsmt["status"]
