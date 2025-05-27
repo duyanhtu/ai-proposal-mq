@@ -29,6 +29,7 @@ class EnvSettings(BaseSettings, case_sensitive=True):
     RABBIT_MQ_SEND_MAIL_QUEUE: str = ""
     RABBIT_MQ_SQL_ANSWER_QUEUE: str = ""
     RABBIT_MQ_CLASSIFY_QUEUE: str = ""
+    RABBIT_MQ_AUTO_ACKNOWLEDGE: bool = True
     MINIO_API_ENDPOINT: str = ""
     MINIO_CONSOLE_ENDPOINT: str = ""
     MINIO_ACCESS_KEY: str = ""
