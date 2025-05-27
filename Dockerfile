@@ -20,7 +20,7 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Copy the rest of the application code
 COPY ./app /app/app
-COPY .env /app/.env
+COPY .env.production /app/.env
 COPY ./main_*.py /app/
 COPY ./temp /app/temp
 COPY ./logs /app/logs
