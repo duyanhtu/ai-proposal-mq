@@ -380,7 +380,8 @@ def classify_document_from_text(text, file_name=None):
         status = "CHUA_XU_LY"
 
         match True:
-            case _ if "tiêu chuẩn đánh giá về kỹ thuật" in text_lower and "chỉ dẫn nhà thầu" not in text_lower:
+            case _ if any(keyword in text_lower for keyword in
+                          ["tiêu chuẩn đánh giá về kỹ thuật", "tiêu chuẩn đánh giá kỹ thuật"]) and "chỉ dẫn nhà thầu" not in text_lower:
                 # This is a case for TCDGKT documents
                 doc_type = "TCDGKT"
                 if file_name:
